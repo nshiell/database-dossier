@@ -32,14 +32,22 @@ class State:
     def __init__(self, data={}):
         self.user = data['user'] if 'user' in data else None
         self.password = data['password'] if 'password' in data else None
-        self.password = data['host'] if 'host' in data else None
-        self.database = data['database'] if 'database' in data else None
+        self.host = data['host'] if 'host' in data else None
+        self.port = data['port'] if 'port' in data else None
+
+    def to_dict(self):
+        return {
+            "user": self.user,
+            "password": self.password,
+            "port": self.port,
+            "host": self.host
+        }
 
 def load_state():
     return State(get_config())
 
 def save_state(state):
-    return State
+    set_config(state.to_dict())
 
 
 
