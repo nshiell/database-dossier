@@ -344,13 +344,16 @@ class MainWindow(QMainWindow, WindowMixin):
         self.f('text_edit_sql').document().setPlainText(self.state.editor_sql)
         
         if self.state.host:
-            connection = create_connection(
-                self.state.host,
-                self.state.user,
-                self.state.password,
-                self.state.port
-            )
-            self.connect(connection, self.state.password)
+            try:
+                connection = create_connection(
+                    self.state.host,
+                    self.state.user,
+                    self.state.password,
+                    self.state.port
+                )
+                self.connect(connection, self.state.password)
+            except mysql.connector.errors.DatabaseError as e:
+                show_connection_error(str(e))
 
 
     def setup(self):
