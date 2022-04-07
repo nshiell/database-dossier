@@ -44,8 +44,8 @@
              </property>
              <property name="styleSheet">
               <string notr="true">background-color: black;
-font-size: 18pt;
-font-family: 'Ubuntu Mono', 'Courier New'</string>
+font-size: 14pt;
+font-family: 'Courier New', 'Ubuntu Mono'</string>
              </property>
              <property name="undoRedoEnabled">
               <bool>true</bool>
@@ -132,7 +132,7 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
          <enum>QTabWidget::North</enum>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="tab_3">
          <attribute name="title">

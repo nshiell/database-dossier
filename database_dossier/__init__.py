@@ -57,22 +57,23 @@ class ConnectionDialog(QDialog, WindowMixin):
 
 
     def create_connection(self, dry_run = False):
+        password = self.f('password').text()
+
         try:
             connection = create_connection(
                 self.f('host').text(),
                 self.f('user').text(),
-                self.f('password').text(),
+                password,
                 self.f('port').text()
             )
-
-            if dry_run:
-                show_connection_ok()
-            else:
-                self.parent().connect(connection)
-                self.close()
-            return connection
         except mysql.connector.errors.DatabaseError as e:
             show_connection_error(str(e))
+        
+        if dry_run:
+            show_connection_ok()
+        else:
+            self.parent().connect(connection, password)
+            self.close()
 
 
 def create_connection(host, user, password, port):
@@ -90,9 +91,15 @@ class MainWindow(QMainWindow, WindowMixin):
     def __init__(self):
         super().__init__()
         self.load_xml('main_window.ui')
-        self.connection = None
+        #self.connection = None
+        self.connections = []
+        self.active_connection_index = 0
         self.result_sets = {}
         self.setup()
+
+    @property
+    def active_connection(self):
+        return self.connections[self.active_connection_index]
 
 
     def setup_result_set(self, name):
@@ -159,7 +166,6 @@ class MainWindow(QMainWindow, WindowMixin):
                     self.formatter
                 )
             )
-            #print(highlighted_query_text)
             # Return cursor back to the old position
             current_cursor.setPosition(current_cursor_position)
             text_edit_sql.setTextCursor(current_cursor)
@@ -198,9 +204,6 @@ class MainWindow(QMainWindow, WindowMixin):
         right_pad = 0
         if last_char == ';':
             right_pad = 1
-
-
-        #print(cursor.position())
         
         text_cursor.clearSelection()
         
@@ -221,7 +224,7 @@ class MainWindow(QMainWindow, WindowMixin):
         sql_fragment = self.get_sql_fragment_and_select()
 
         if sql_fragment:
-            cursor = self.connection.cursor()
+            cursor = self.active_connection.cursor()
             cursor.execute(sql_fragment)
 
             table_model = self.result_sets['result_set_' + str(result_set_index + 1)]
@@ -241,66 +244,59 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def select_tree_object(self, model_index):
-        #print(val.row())
-        #print(val.column())
-
-        # Isn't a connection
-        
-        cursor = self.connection.cursor()
-        
-        
         if model_index.parent().isValid():
-            # Is a table
             if model_index.parent().parent().isValid():
-                table_name = model_index.data()
-                table_name_clean = repr(table_name)[1:-1]
-                
-                
-                cursor.execute("DESCRIBE %s" % table_name_clean)
-
-                self.result_sets['schema'].headers = [i[0] for i in cursor.description]
-                self.result_sets['schema'].record_set = cursor.fetchall()
-                self.result_sets['schema'].update_emit()
-                
-                cursor.execute("SELECT * FROM %s LIMIT %d" % (
-                    table_name_clean,
-                    1000
-                ))
-                
-                self.result_sets['data'].headers = [i[0] for i in cursor.description]
-                self.result_sets['data'].record_set = cursor.fetchall()
-                self.result_sets['data'].update_emit()
-                
-                self.f('tab_result_sets').setTabText(0, table_name)
-                
+                level = 'table'
             else:
-                database_item = self.tree_model.itemFromIndex(model_index)
-                #print(val.data())
-                #print(val.data())
-                #mycursor.execute("USE %s", [val.data()])
-                cursor.execute("USE %s" % repr(model_index.data())[1:-1])
-                cursor.execute('SHOW TABLES')
-                
-                #mycursor.execute('SELECT * FROM user WHERE id = %s', tuple('1'))
-                #mycursor.execute("USE %s", (val.data()))
+                level = 'database'
+        else:
+            level = 'connection'
 
-                children_count = database_item.rowCount()
+        if level == 'database':
+            database_item = self.tree_model.itemFromIndex(model_index)
+            self.active_connection_index = model_index.parent().row()
+            cursor = self.active_connection.cursor()
+            cursor.execute("USE %s" % repr(model_index.data())[1:-1])
+            cursor.execute('SHOW TABLES')
+            children_count = database_item.rowCount()
 
-                #child = database_item.child(row_num)
-                #print(child.text())
+            if children_count:
+                for row_num in reversed(range(children_count)):
+                    database_item.removeRow(row_num)
 
-                if children_count:
-                    for row_num in reversed(range(children_count)):
-                        database_item.removeRow(row_num)
+            for x in cursor:
+                database_item.appendRow(StandardItem(x[0]))
 
-                for x in cursor:
-                    database_item.appendRow(StandardItem(x[0]))
+            self.f('tree_view_objects').expand(model_index)
+        elif level == 'table':
+            self.active_connection_index = model_index.parent().parent().row()
+            cursor = self.active_connection.cursor()
 
-                self.f('tree_view_objects').expand(model_index)
+            table_name = model_index.data()
+            table_name_clean = repr(table_name)[1:-1]
+
+            cursor.execute("DESCRIBE %s" % table_name_clean)
+
+            self.result_sets['schema'].headers = [i[0] for i in cursor.description]
+            self.result_sets['schema'].record_set = cursor.fetchall()
+            self.result_sets['schema'].update_emit()
+
+            cursor.execute("SELECT * FROM %s LIMIT %d" % (
+                table_name_clean,
+                1000
+            ))
+
+            self.result_sets['data'].headers = [i[0] for i in cursor.description]
+            self.result_sets['data'].record_set = cursor.fetchall()
+            self.result_sets['data'].update_emit()
+
+            self.f('tab_result_sets').setTabText(0, table_name)
+        elif level == 'connection':
+            self.active_connection_index = model_index.row()
 
 
     def list_databases(self):
-        cursor = self.connection.cursor()
+        cursor = self.active_connection.cursor()
         cursor.execute("SHOW DATABASES")
 
         #treeModel = QStandardItemModel()
@@ -308,8 +304,8 @@ class MainWindow(QMainWindow, WindowMixin):
         root_node = self.tree_model.invisibleRootItem()
 
         name = '%s:%s' % (
-            self.connection.server_host,
-            self.connection.server_port
+            self.active_connection.server_host,
+            self.active_connection.server_port
         )
         connection_item = StandardItem(name, 28, set_bold=True)
         root_node.appendRow(connection_item)
@@ -318,17 +314,46 @@ class MainWindow(QMainWindow, WindowMixin):
             database_item = StandardItem(x[0], 16, set_bold=True)
             connection_item.appendRow(database_item)
 
-        self.f('tree_view_objects').expand(self.tree_model.index(0, 0))
+        self.f('tree_view_objects').expand(connection_item.index())
 
+    def connect(self, connection, password):
+        #self.connection = connection
+        self.connections.append(connection)
+        self.active_connection_index = len(self.connections) - 1
 
-    def connect(self, connection):
-        self.connection = connection
+        state_change = (
+            self.state.host != connection.server_host or
+            self.state.port != connection.server_port or
+            self.state.user != connection.user or
+            self.state.password != password
+        )
+
+        if state_change:
+            self.state.host = connection.server_host
+            self.state.port = connection.server_port
+            self.state.user = connection.user
+            self.state.password = password
+    
+            save_state(self.state)
+        
         self.list_databases()
 
 
-    def setup(self):
+    def setup_state(self):
         self.state = load_state()
+        self.f('text_edit_sql').document().setPlainText(self.state.editor_sql)
+        
+        if self.state.host:
+            connection = create_connection(
+                self.state.host,
+                self.state.user,
+                self.state.password,
+                self.state.port
+            )
+            self.connect(connection, self.state.password)
 
+
+    def setup(self):
         connection_dialog = ConnectionDialog(self)
         self.menu('action_connect', connection_dialog.show)
 
@@ -347,12 +372,12 @@ class MainWindow(QMainWindow, WindowMixin):
         #tree_view_objects.expand(self.tree_model.index(0, 0))
         self.bind(tree_view_objects, 'clicked', self.select_tree_object)
 
-        text_edit_sql = self.f('text_edit_sql')
+        text_edit_sql = self.f('text_edit_sql')        
         self.formatter = syntax_highlighter.create_formatter(text_edit_sql.styleSheet())
         self.query_text_edit_document = QTextDocument(self)
         self.query_text_edit_document.setDefaultStyleSheet(syntax_highlighter.style())
         text_edit_sql.setDocument(self.query_text_edit_document)
-
+#https://stackoverflow.com/questions/2993304/how-can-i-access-the-qundostack-of-a-qtextdocument
         text_edit_log = self.f('text_edit_log')
         self.formatter_log = syntax_highlighter.create_formatter(text_edit_log.styleSheet())
         self.text_edit_log_document = QTextDocument(self)
@@ -370,3 +395,13 @@ class MainWindow(QMainWindow, WindowMixin):
         self.bind('execute_3', 'clicked', lambda: self.execute(2))
 
         self.bind('table_query', 'currentChanged', self.highlight_log)
+
+        # Must be last
+        self.setup_state()
+
+
+    def closeEvent(self, event):
+        sql = self.f('text_edit_sql').toPlainText()
+        self.state.editor_sql = sql
+        
+        save_state(self.state)
