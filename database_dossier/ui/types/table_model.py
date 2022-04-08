@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import QColor
 
 class TableModel(QAbstractTableModel):
     def __init__(self, *args):
         self.headers = None
         self.record_set = None
+        self.is_error = False
         super().__init__()
     
     
@@ -33,6 +35,9 @@ class TableModel(QAbstractTableModel):
     def data(self, index, role):
         if not index.isValid():
             return None
+
+        if role == Qt.TextColorRole and self.is_error:
+            return QVariant(QColor(Qt.red))
 
         if role == Qt.DisplayRole:
             text = self.record_set[index.row()][index.column()]

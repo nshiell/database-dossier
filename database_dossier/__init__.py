@@ -123,6 +123,39 @@ class MainWindow(QMainWindow, WindowMixin):
         table_view.customContextMenuRequested.connect(context_menu)
 
 
+    def log_line(self, sql):
+        text_edit_log = self.f('text_edit_log')
+        old_text = text_edit_log.toPlainText()
+        prefix = '\n' if old_text else ''
+        text_edit_log.setText(old_text + prefix + sql)
+
+
+    def execute_active_connection_cursor(self, sql):
+        cursor = self.active_connection.cursor()
+        cursor.execute(sql)
+        self.log_line(sql)
+        return cursor
+
+    def execute_update_table_model(self, table_model, sql):
+        #cursor = self.active_connection.cursor()
+
+        table_model.is_error = False
+        table_model.headers = ['Result']
+        table_model.record_set = [['OK']]
+
+        try:
+            cursor = self.execute_active_connection_cursor(sql)
+            if cursor.description:
+                table_model.headers = [i[0] for i in cursor.description]
+                table_model.record_set = cursor.fetchall()
+        except mysql.connector.errors.ProgrammingError as e:
+            table_model.headers = ['Error']
+            table_model.record_set = [[str(e)]]
+            table_model.is_error = True
+
+        table_model.update_emit()
+
+
     def highlight_log(self, new_index):
         if new_index == 1:
             self.text_edit_log_document.setHtml(
@@ -224,20 +257,13 @@ class MainWindow(QMainWindow, WindowMixin):
         sql_fragment = self.get_sql_fragment_and_select()
 
         if sql_fragment:
-            cursor = self.active_connection.cursor()
-            cursor.execute(sql_fragment)
-
             table_model = self.result_sets['result_set_' + str(result_set_index + 1)]
-
-            if cursor.description:
-                table_model.headers = [i[0] for i in cursor.description]
-                table_model.record_set = cursor.fetchall()
-                table_model.update_emit()
-                self.f('tab_result_sets').setCurrentIndex(2 + result_set_index)
+            self.execute_update_table_model(table_model, sql_fragment)
+            self.f('tab_result_sets').setCurrentIndex(2 + result_set_index)
 
             text_edit_log = self.f('text_edit_log')
             prefix = '\n' if text_edit_log.toPlainText() else ''
-            
+
             text_edit_log.setText(text_edit_log.toPlainText() + prefix + sql_fragment)
             self.f('text_edit_sql').setFocus()
 
@@ -255,16 +281,17 @@ class MainWindow(QMainWindow, WindowMixin):
         if level == 'database':
             database_item = self.tree_model.itemFromIndex(model_index)
             self.active_connection_index = model_index.parent().row()
-            cursor = self.active_connection.cursor()
-            cursor.execute("USE %s" % repr(model_index.data())[1:-1])
-            cursor.execute('SHOW TABLES')
+            self.execute_active_connection_cursor(
+                "USE %s;" % repr(model_index.data())[1:-1]
+            )
+
             children_count = database_item.rowCount()
 
             if children_count:
                 for row_num in reversed(range(children_count)):
                     database_item.removeRow(row_num)
 
-            for x in cursor:
+            for x in self.execute_active_connection_cursor('SHOW TABLES;'):
                 database_item.appendRow(StandardItem(x[0]))
 
             self.f('tree_view_objects').expand(model_index)
@@ -275,32 +302,22 @@ class MainWindow(QMainWindow, WindowMixin):
             table_name = model_index.data()
             table_name_clean = repr(table_name)[1:-1]
 
-            cursor.execute("DESCRIBE %s" % table_name_clean)
+            self.execute_update_table_model(
+                self.result_sets['schema'],
+                "DESCRIBE %s" % table_name_clean
+            )
 
-            self.result_sets['schema'].headers = [i[0] for i in cursor.description]
-            self.result_sets['schema'].record_set = cursor.fetchall()
-            self.result_sets['schema'].update_emit()
+            self.execute_update_table_model(
+                self.result_sets['data'],
+                "SELECT * FROM %s LIMIT %d" % (table_name_clean, 1000)
+            )
 
-            cursor.execute("SELECT * FROM %s LIMIT %d" % (
-                table_name_clean,
-                1000
-            ))
-
-            self.result_sets['data'].headers = [i[0] for i in cursor.description]
-            self.result_sets['data'].record_set = cursor.fetchall()
-            self.result_sets['data'].update_emit()
-
-            self.f('tab_result_sets').setTabText(0, table_name)
+            self.f('tab_result_sets').setTabText(0, 'Table: ' + table_name)
         elif level == 'connection':
             self.active_connection_index = model_index.row()
 
 
     def list_databases(self):
-        cursor = self.active_connection.cursor()
-        cursor.execute("SHOW DATABASES")
-
-        #treeModel = QStandardItemModel()
-        
         root_node = self.tree_model.invisibleRootItem()
 
         name = '%s:%s' % (
@@ -310,7 +327,7 @@ class MainWindow(QMainWindow, WindowMixin):
         connection_item = StandardItem(name, 28, set_bold=True)
         root_node.appendRow(connection_item)
 
-        for x in cursor:
+        for x in self.execute_active_connection_cursor('SHOW DATABASES;'):
             database_item = StandardItem(x[0], 16, set_bold=True)
             connection_item.appendRow(database_item)
 
