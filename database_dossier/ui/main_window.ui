@@ -60,24 +60,27 @@ font-family: 'Courier New', 'Ubuntu Mono'</string>
              <item>
               <widget class="QPushButton" name="execute_1">
                <property name="text">
-                <string>Result Set 1</string>
+                <string>1</string>
                </property>
                <property name="shortcut">
-                <string/>
+                <string>Ctrl+Return</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="execute_2">
                <property name="text">
-                <string>Result Set 2</string>
+                <string>2</string>
+               </property>
+               <property name="shortcut">
+                <string>Ctrl+Enter</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="execute_3">
                <property name="text">
-                <string>Result Set 3</string>
+                <string>3</string>
                </property>
               </widget>
              </item>
@@ -268,14 +271,26 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="action_connect"/>
+    <addaction name="create_connection"/>
+    <addaction name="quit"/>
    </widget>
    <addaction name="menu_File"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="action_connect">
+  <action name="create_connection">
    <property name="text">
     <string>&amp;Connect</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="quit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>

@@ -375,7 +375,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def setup(self):
         connection_dialog = ConnectionDialog(self)
-        self.menu('action_connect', connection_dialog.show)
+        self.menu('create_connection', connection_dialog.show)
+        self.menu('quit', qApp.quit)
 
         self.setup_result_set('result_set_1')
         self.setup_result_set('result_set_2')
@@ -407,13 +408,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.bind(text_edit_sql, 'textChanged', self.on_query_changed)
         self.bind('execute_1', 'clicked', lambda: self.execute(0))
-        self.f('execute_1').setShortcut('Ctrl+Return')
-
         self.bind('execute_2', 'clicked', lambda: self.execute(1))
-
-        self.f('execute_2').setShortcut('Ctrl+Enter')
         self.bind('execute_3', 'clicked', lambda: self.execute(2))
-
         self.bind('table_query', 'currentChanged', self.highlight_log)
 
         # Must be last
