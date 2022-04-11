@@ -90,3 +90,47 @@ class TextDocument(QTextDocument):
                     self.undo_stack.append(
                         self.create_text_state(text, position)
                     )
+
+
+    def get_sql_fragment_start_end_points(self, cursor):
+        """
+        Looks at where the text cursor is and finds the beginning and end of the
+        query, and returns the offset points in the text
+        """
+        sql = self.toPlainText()
+
+        if not sql.strip():
+            return None
+
+        position = cursor.position()
+
+        # Run back the the previous ';' and ahead to the next one
+        sql_before_cursor = sql[:position].rsplit(';', 1)[-1].lstrip()
+        sql_after_cursor = sql[position:].split(';', 1)[0]
+
+        # Previous was a semi colon, after whitespace
+        if self.no_query_under_cursor(sql_before_cursor, sql_after_cursor):
+            return None
+
+        sql_before_cursor_length = len(sql_before_cursor)
+        sql_after_cursor_length = len(sql_after_cursor)
+
+        # After this substring is a semicolon for the query - include it too
+        last_char_pos = position + sql_after_cursor_length
+        if sql[last_char_pos : last_char_pos + 1] == ';':
+            sql_after_cursor_length+=1
+
+        return (position - sql_before_cursor_length, position + sql_after_cursor_length)
+
+
+    def no_query_under_cursor(self, sql_before_cursor, sql_after_cursor):
+        """
+        Situation where we click on the lend of a line after a semi-colon
+        Don't try and do anything with the query on the next line
+        """
+
+        fist_char_after_cursor_is_whitepsace = (
+            len(sql_after_cursor) and sql_after_cursor[0].isspace()
+        )
+
+        return (fist_char_after_cursor_is_whitepsace and not sql_before_cursor)
