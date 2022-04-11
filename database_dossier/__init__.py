@@ -1,16 +1,10 @@
-from PyQt5.QtWidgets import *
-
 import mysql.connector
-
-from .ui import *
-
-#from PyQt5.Qt import QStandardItemModel, QStandardItem, QTextDocument
+from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument
 from PyQt5.QtGui import QTextCursor, QIcon
 from PyQt5.QtCore import *
+from .ui import *
 from . import syntax_highlighter
-
-
 from .store import *
 
 
@@ -136,9 +130,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.log_line(sql)
         return cursor
 
-    def execute_update_table_model(self, table_model, sql):
-        #cursor = self.active_connection.cursor()
 
+    def execute_update_table_model(self, table_model, sql):
         table_model.is_error = False
         table_model.headers = ['Result']
         table_model.record_set = [['OK']]
@@ -152,6 +145,13 @@ class MainWindow(QMainWindow, WindowMixin):
             table_model.headers = ['Error']
             table_model.record_set = [[str(e)]]
             table_model.is_error = True
+
+        text_edit_log = self.f('text_edit_log')
+        prefix = '\n' if text_edit_log.toPlainText() else ''
+
+        text_edit_log.setText(
+            text_edit_log.toPlainText() + prefix + sql
+        )
 
         table_model.update_emit()
 
@@ -207,69 +207,64 @@ class MainWindow(QMainWindow, WindowMixin):
             text_edit_sql.setTextCursor(current_cursor)
 
 
-
-
-    def get_sql_fragment_and_select(self):
-        text_edit_sql = self.f('text_edit_sql')
-        sql = text_edit_sql.toPlainText()
-
-        if not sql.strip():
-            return None
-
-        text_cursor = text_edit_sql.textCursor()
-        selected_text = text_cursor.selectedText()
-        
-        if selected_text:
-            return selected_text
-        
-        
+    def select_sql_fragment(self, start_point, end_point):
+        text_cursor = self.f('text_edit_sql').textCursor()
+        text_cursor.selectedText()
         current_position = text_cursor.position()
-
-        sql_before_cursor = sql[:current_position].rsplit(';', 1)[-1].lstrip()
-        sql_after_cursor = sql[current_position:].split(';', 1)[0]
-
-        
-
-        fist_char_after_cursor_is_whitepsace = len(sql_after_cursor) and sql_after_cursor[0].isspace()
-        if fist_char_after_cursor_is_whitepsace and not sql_before_cursor:
-            return None
-        
-        
-        last_char = sql[current_position + len(sql_after_cursor):current_position + len(sql_after_cursor) + 1]
-        
-        right_pad = 0
-        if last_char == ';':
-            right_pad = 1
         
         text_cursor.clearSelection()
-        
         text_cursor.movePosition(QTextCursor.Start, QTextCursor.MoveAnchor)
+
         # last char
-        text_cursor.movePosition(QTextCursor.Right, QTextCursor.MoveAnchor, current_position + len(sql_after_cursor) + right_pad)
+        text_cursor.movePosition(
+            QTextCursor.Right,
+            QTextCursor.MoveAnchor,
+            end_point
+        )
+
         #Legnth
-        text_cursor.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor, len(sql_after_cursor) + len(sql_before_cursor) + right_pad)
+        text_cursor.movePosition(
+            QTextCursor.Left,
+            QTextCursor.KeepAnchor,
+            end_point - start_point
+        )
+
         text_cursor.selectedText()
         
-        text_edit_sql.setTextCursor(text_cursor)
-
-        return sql[current_position - len(sql_before_cursor):current_position + len(sql_after_cursor) + right_pad].strip()
+        self.f('text_edit_sql').setTextCursor(text_cursor)
 
 
 
     def execute(self, result_set_index):
-        sql_fragment = self.get_sql_fragment_and_select()
+        text_edit_sql = self.f('text_edit_sql')
+        doc = text_edit_sql.document()
+        text_cursor = text_edit_sql.textCursor()
+
+        selected_sql = text_cursor.selectedText()
+
+        if selected_sql:
+            sql_fragment = selected_sql.strip()
+        else:
+            start_end_points = doc.get_sql_fragment_start_end_points(
+                text_cursor
+            )
+
+            sql_fragment = text_edit_sql.toPlainText()[
+                start_end_points[0]:start_end_points[1]
+            ].strip()
+
+            if sql_fragment:
+                self.select_sql_fragment(*start_end_points)
 
         if sql_fragment:
-            table_model = self.result_sets['result_set_' + str(result_set_index + 1)]
+            text_edit_sql.setFocus()
+
+            result_set_name = 'result_set_' + str(result_set_index + 1)
+            table_model = self.result_sets[result_set_name]
             self.execute_update_table_model(table_model, sql_fragment)
             self.f('tab_result_sets').setCurrentIndex(2 + result_set_index)
 
-            text_edit_log = self.f('text_edit_log')
-            prefix = '\n' if text_edit_log.toPlainText() else ''
-
-            text_edit_log.setText(text_edit_log.toPlainText() + prefix + sql_fragment)
-            self.f('text_edit_sql').setFocus()
-
+            text_edit_sql.setFocus()
 
 
     def select_tree_object(self, model_index):
@@ -336,6 +331,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.f('tree_view_objects').expand(connection_item.index())
 
+
     def connect(self, connection, password):
         #self.connection = connection
         self.connections.append(connection)
@@ -392,13 +388,10 @@ class MainWindow(QMainWindow, WindowMixin):
         self.setup_result_set('data')
         self.setup_result_set('schema')
 
-        #tab_result_sets = self.f('tab_result_sets')
-
         tree_view_objects = self.f('tree_view_objects')
         self.tree_model = QStandardItemModel()
         tree_view_objects.setModel(self.tree_model)
-        #self.list_databases()
-        #tree_view_objects.expand(self.tree_model.index(0, 0))
+
         self.bind(tree_view_objects, 'clicked', self.select_tree_object)
         self.formatter = syntax_highlighter.create_formatter(text_edit_sql.styleSheet())
         self.query_text_edit_document = TextDocument(self)
