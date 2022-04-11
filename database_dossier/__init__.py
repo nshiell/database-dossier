@@ -169,6 +169,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def on_query_changed(self):
         """Process query edits by user"""
         if self.is_processing_highlighting:
+
             # If we caused the invokation of this slot by set highlighted
             # HTML text into query editor, then ignore this call and
             # mark highlighting processing as finished.
@@ -187,6 +188,8 @@ class MainWindow(QMainWindow, WindowMixin):
             # the cursor will jump to the end of the text.
             # To avoid that we remember the current position of the cursor.
             current_cursor = text_edit_sql.textCursor()
+            self.query_text_edit_document.add_to_undo_stack_if_needed(current_cursor)
+
             current_cursor_position = current_cursor.position()
             # Set highlighted text back to editor which will cause the
             # cursor to jump to the end of the text.
@@ -359,7 +362,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def setup_state(self):
         self.state = load_state()
         self.f('text_edit_sql').document().setPlainText(self.state.editor_sql)
-        
+
         if self.state.host:
             try:
                 connection = create_connection(
@@ -376,6 +379,11 @@ class MainWindow(QMainWindow, WindowMixin):
     def setup(self):
         connection_dialog = ConnectionDialog(self)
         self.menu('create_connection', connection_dialog.show)
+
+        text_edit_sql = self.f('text_edit_sql')
+
+        self.menu('action_undo', lambda: text_edit_sql.document().undo(text_edit_sql.textCursor()))
+        self.menu('action_redo', lambda: text_edit_sql.document().redo(text_edit_sql.textCursor()))
         self.menu('quit', qApp.quit)
 
         self.setup_result_set('result_set_1')
@@ -392,13 +400,12 @@ class MainWindow(QMainWindow, WindowMixin):
         #self.list_databases()
         #tree_view_objects.expand(self.tree_model.index(0, 0))
         self.bind(tree_view_objects, 'clicked', self.select_tree_object)
-
-        text_edit_sql = self.f('text_edit_sql')        
         self.formatter = syntax_highlighter.create_formatter(text_edit_sql.styleSheet())
-        self.query_text_edit_document = QTextDocument(self)
+        self.query_text_edit_document = TextDocument(self)
+
         self.query_text_edit_document.setDefaultStyleSheet(syntax_highlighter.style())
         text_edit_sql.setDocument(self.query_text_edit_document)
-#https://stackoverflow.com/questions/2993304/how-can-i-access-the-qundostack-of-a-qtextdocument
+
         text_edit_log = self.f('text_edit_log')
         self.formatter_log = syntax_highlighter.create_formatter(text_edit_log.styleSheet())
         self.text_edit_log_document = QTextDocument(self)

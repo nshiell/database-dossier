@@ -274,7 +274,15 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <addaction name="create_connection"/>
     <addaction name="quit"/>
    </widget>
+   <widget class="QMenu" name="menu_Edit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+    <addaction name="action_undo"/>
+    <addaction name="action_redo"/>
+   </widget>
    <addaction name="menu_File"/>
+   <addaction name="menu_Edit"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="create_connection">
@@ -291,6 +299,22 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="action_undo">
+   <property name="text">
+    <string>&amp;Undo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="action_redo">
+   <property name="text">
+    <string>&amp;Redo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Y</string>
    </property>
   </action>
  </widget>
