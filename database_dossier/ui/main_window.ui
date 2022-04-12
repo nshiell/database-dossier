@@ -264,7 +264,7 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>23</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -286,6 +286,9 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="create_connection">
+   <property name="icon">
+    <iconset theme="document-new"/>
+   </property>
    <property name="text">
     <string>&amp;Connect</string>
    </property>
@@ -294,6 +297,9 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
    </property>
   </action>
   <action name="quit">
+   <property name="icon">
+    <iconset theme="application-exit"/>
+   </property>
    <property name="text">
     <string>Quit</string>
    </property>
@@ -302,6 +308,9 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
    </property>
   </action>
   <action name="action_undo">
+   <property name="icon">
+    <iconset theme="edit-undo"/>
+   </property>
    <property name="text">
     <string>&amp;Undo</string>
    </property>
@@ -310,6 +319,9 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
    </property>
   </action>
   <action name="action_redo">
+   <property name="icon">
+    <iconset theme="edit-redo"/>
+   </property>
    <property name="text">
     <string>&amp;Redo</string>
    </property>
