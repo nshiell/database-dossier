@@ -1,7 +1,7 @@
 import mysql.connector
 from PyQt5.QtWidgets import *
-from PyQt5.Qt import QStandardItemModel, QTextDocument
-from PyQt5.QtGui import QTextCursor, QIcon
+from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
+from PyQt5.QtGui import QTextCursor, QIcon, QFont
 from PyQt5.QtCore import *
 from .ui import *
 from . import syntax_highlighter
@@ -35,6 +35,38 @@ def show_connection_ok():
     msg.setInformativeText('Can connect')
     msg.setWindowTitle("OK")
     msg.exec_()
+
+
+def create_connection_tree_item(name):
+    font = QFont('Open Sans', 12)
+    font.setBold(True)
+
+    item = QStandardItem()
+    item.setEditable(False)
+    item.setFont(font)
+    item.setText(name)
+
+    return item
+
+
+def create_database_tree_item(name):
+    font = QFont()
+    font.setBold(True)
+
+    item = QStandardItem()
+    item.setEditable(False)
+    item.setFont(font)
+    item.setText(name)
+
+    return item
+
+
+def create_table_tree_item(name):
+    item = QStandardItem()
+    item.setEditable(False)
+    item.setText(name)
+
+    return item
 
 
 class ConnectionDialog(QDialog, WindowMixin):
@@ -85,7 +117,6 @@ class MainWindow(QMainWindow, WindowMixin):
     def __init__(self):
         super().__init__()
         self.load_xml('main_window.ui')
-        #self.connection = None
         self.connections = []
         self.active_connection_index = 0
         self.result_sets = {}
@@ -249,6 +280,9 @@ class MainWindow(QMainWindow, WindowMixin):
                 text_cursor
             )
 
+            if start_end_points is None:
+                return None
+
             sql_fragment = text_edit_sql.toPlainText()[
                 start_end_points[0]:start_end_points[1]
             ].strip()
@@ -290,7 +324,7 @@ class MainWindow(QMainWindow, WindowMixin):
                     database_item.removeRow(row_num)
 
             for x in self.execute_active_connection_cursor('SHOW TABLES;'):
-                database_item.appendRow(StandardItem(x[0]))
+                database_item.appendRow(create_table_tree_item(x[0]))
 
             self.f('tree_view_objects').expand(model_index)
         elif level == 'table':
@@ -322,18 +356,16 @@ class MainWindow(QMainWindow, WindowMixin):
             self.active_connection.server_host,
             self.active_connection.server_port
         )
-        connection_item = StandardItem(name, 28, set_bold=True)
+        connection_item = create_connection_tree_item(name)
         root_node.appendRow(connection_item)
 
         for x in self.execute_active_connection_cursor('SHOW DATABASES;'):
-            database_item = StandardItem(x[0], 16, set_bold=True)
-            connection_item.appendRow(database_item)
+            connection_item.appendRow(create_database_tree_item(x[0]))
 
         self.f('tree_view_objects').expand(connection_item.index())
 
 
     def connect(self, connection, password):
-        #self.connection = connection
         self.connections.append(connection)
         self.active_connection_index = len(self.connections) - 1
 
