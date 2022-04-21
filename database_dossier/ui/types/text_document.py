@@ -1,11 +1,24 @@
+from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import *
 
 class TextDocument(QTextDocument):
     def __init__(self, parent):
         super().__init__(parent)
 
+        # The undo/redo doesn't work
+        # if we set HTML content anyway
+        self.setUndoRedoEnabled(False)
+
+        # Snapshots of the text AND cursor positions
+        # Ordered - first is oldest
         self.undo_stack = []
+
+        # How many back steps have we gone though
         self.undo_position_back = 0
+
+        # Undoing content actually tried to trigger
+        # a new change to the text, hence a new undo state
+        # would be created, this flag prevents this
         self.undo_ignore = False
 
 
@@ -17,6 +30,7 @@ class TextDocument(QTextDocument):
 
 
     def undo(self, cursor):
+        print('udoing start')
         undo_back_position_delta = 1
         text = self.toPlainText()
         should_store_current = (
@@ -58,6 +72,9 @@ class TextDocument(QTextDocument):
 
     def redo(self, cursor):
         self.undo_ignore = True
+        if len(self.undo_stack) == 0:
+            return None
+
         if len(self.undo_stack) > self.undo_position_back - 1:
             state = self.undo_stack[0 - (self.undo_position_back - 1)]
             if state:
@@ -84,12 +101,15 @@ class TextDocument(QTextDocument):
             position = cursor.position()
 
             text = self.toPlainText()
-            if len(text) >= position:
+
+            # If no text, don't try and store anything
+            if len(text):
                 last_char_entered = text[position - 1]
                 if last_char_entered in ' ();\n\t\'"':
                     self.undo_stack.append(
                         self.create_text_state(text, position)
                     )
+                    #print(len(self.undo_stack))
 
 
     def get_sql_fragment_start_end_points(self, cursor):

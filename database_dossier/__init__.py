@@ -122,6 +122,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.result_sets = {}
         self.setup()
 
+
     @property
     def active_connection(self):
         return self.connections[self.active_connection_index]
@@ -195,47 +196,6 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.formatter_log
             )
         )
-
-
-    def on_query_changed(self):
-        """Process query edits by user"""
-        if self.is_processing_highlighting:
-
-            # If we caused the invokation of this slot by set highlighted
-            # HTML text into query editor, then ignore this call and
-            # mark highlighting processing as finished.
-            self.is_processing_highlighting = False
-        else:
-            # If changes to text were made by user, mark beginning of
-            # highlighting process
-            self.is_processing_highlighting = True
-            
-            text_edit_sql = self.f('text_edit_sql')
-            
-            
-            # Get plain text query and highlight it
-
-            # After we set highlighted HTML back to QTextEdit form
-            # the cursor will jump to the end of the text.
-            # To avoid that we remember the current position of the cursor.
-            current_cursor = text_edit_sql.textCursor()
-            self.query_text_edit_document.add_to_undo_stack_if_needed(current_cursor)
-
-            current_cursor_position = current_cursor.position()
-            # Set highlighted text back to editor which will cause the
-            # cursor to jump to the end of the text.
-
-            #highlighted_query_text = highlighted_query_text.replace('z</span>', '</span>')
-
-            self.query_text_edit_document.setHtml(
-                syntax_highlighter.highlight(
-                    text_edit_sql.toPlainText(),
-                    self.formatter
-                )
-            )
-            # Return cursor back to the old position
-            current_cursor.setPosition(current_cursor_position)
-            text_edit_sql.setTextCursor(current_cursor)
 
 
     def select_sql_fragment(self, start_point, end_point):
@@ -389,7 +349,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def setup_state(self):
         self.state = load_state()
-        self.f('text_edit_sql').document().setPlainText(self.state.editor_sql)
+        self.f('text_edit_sql').setPlainText(self.state.editor_sql)
 
         if self.state.host:
             try:
@@ -408,10 +368,14 @@ class MainWindow(QMainWindow, WindowMixin):
         connection_dialog = ConnectionDialog(self)
         self.menu('create_connection', connection_dialog.show)
 
-        text_edit_sql = self.f('text_edit_sql')
 
-        self.menu('action_undo', lambda: text_edit_sql.document().undo(text_edit_sql.textCursor()))
-        self.menu('action_redo', lambda: text_edit_sql.document().redo(text_edit_sql.textCursor()))
+        text_editor = TextEditor(self, self.f('text_edit_sql'))
+
+
+        #text_edit_sql = self.f('text_edit_sql')
+
+        self.menu('action_undo', text_editor.undo)
+        self.menu('action_redo', text_editor.redo)
         self.menu('quit', qApp.quit)
 
         self.setup_result_set('result_set_1')
@@ -425,20 +389,14 @@ class MainWindow(QMainWindow, WindowMixin):
         tree_view_objects.setModel(self.tree_model)
 
         self.bind(tree_view_objects, 'clicked', self.select_tree_object)
-        self.formatter = syntax_highlighter.create_formatter(text_edit_sql.styleSheet())
-        self.query_text_edit_document = TextDocument(self)
-
-        self.query_text_edit_document.setDefaultStyleSheet(syntax_highlighter.style())
-        text_edit_sql.setDocument(self.query_text_edit_document)
 
         text_edit_log = self.f('text_edit_log')
         self.formatter_log = syntax_highlighter.create_formatter(text_edit_log.styleSheet())
         self.text_edit_log_document = QTextDocument(self)
         self.text_edit_log_document.setDefaultStyleSheet(syntax_highlighter.style())
         text_edit_log.setDocument(self.text_edit_log_document)
-        self.is_processing_highlighting = False
 
-        self.bind(text_edit_sql, 'textChanged', self.on_query_changed)
+
         self.bind('execute_1', 'clicked', lambda: self.execute(0))
         self.bind('execute_2', 'clicked', lambda: self.execute(1))
         self.bind('execute_3', 'clicked', lambda: self.execute(2))
