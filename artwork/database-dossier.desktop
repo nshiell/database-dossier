@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0
+Name=Database Dossier
+Comment=Interact with databases
+Comment[de]=Interagieren Sie mit Datenbanken
+Comment[fr]=Interagissez avec les bases de données
+Comment[hi]=डेटाबेस के साथ बातचीत
+Comment[he]=אינטראקציה עם מסדי נתונים
+Comment[ar]=التفاعل مع قواعد البيانات
+Exec=database-dossier
+Terminal=false
+Type=Application
+Icon=database-dossier
+Categories=System;Utility;Development;
+StartupNotify=true
