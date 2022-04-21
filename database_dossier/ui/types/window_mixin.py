@@ -1,11 +1,14 @@
 # for mixin stuff
+import os
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 
 class WindowMixin:
     def __init__(self):
         self.xml_root_ = None
+        self._artwork_dir = None
 
 
     def f(self, name):
@@ -98,3 +101,20 @@ class WindowMixin:
         uic.loadUi(io.StringIO(wrapped_in_ui_tag), new_widget)
     
         return new_widget
+
+
+    @property
+    def artwork_dir(self):
+        if not self._artwork_dir:
+            path = os.path.realpath(__file__)
+            path = os.path.dirname(path) # parent
+            path = os.path.dirname(path) # parent
+            path = os.path.dirname(path) # parent
+            path = os.path.dirname(path) # parent
+            self._artwork_dir = os.path.join(path, 'artwork')
+
+        return self._artwork_dir
+
+
+    def set_window_icon_from_artwork(self, file_name):
+        self.setWindowIcon(QIcon(os.path.join(self.artwork_dir, file_name)))

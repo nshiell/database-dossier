@@ -116,6 +116,7 @@ def create_connection(host, user, password, port):
 class MainWindow(QMainWindow, WindowMixin):
     def __init__(self):
         super().__init__()
+        self.set_window_icon_from_artwork('database-dossier.png')
         self.load_xml('main_window.ui')
         self.connections = []
         self.active_connection_index = 0
