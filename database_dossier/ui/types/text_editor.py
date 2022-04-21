@@ -53,7 +53,7 @@ class TextEditor(QObject):
     * And wappers for undo/redo
     """
 
-    def __init__(self, parent, q_text):
+    def __init__(self, parent, q_text, undo_redo_update_cb):
         super().__init__(parent)
 
         self.q_text = q_text
@@ -63,50 +63,71 @@ class TextEditor(QObject):
         self.doc = TextDocument(parent)
         self.q_text.setDocument(self.doc)
         self.is_processing_highlighting = False
+        self.undo_redo_update_cb = undo_redo_update_cb
 
-        # Built lazy
-        self.context_menu = None
+        self.context_menu_actions = {}
+        self.setup_menu()
         q_text.textChanged.connect(self.query_changed)
-
         q_text.setContextMenuPolicy(Qt.CustomContextMenu)
-        q_text.customContextMenuRequested.connect(self.show_context_menu)
+        q_text.customContextMenuRequested.connect(lambda:
+            self.context_menu.exec_(QCursor.pos())
+        )
         q_text.installEventFilter(self)
 
 
-    def show_context_menu(self):
-        if self.context_menu is None:
-            self.context_menu = QMenu()
-            action = QAction(
-                QIcon.fromTheme("edit-undo"),
-                "&Undo",
-                self.q_text
-            )
+    @property
+    def plain_text(self):
+        return self.q_text.toPlainText()
 
-            action.setShortcut('Ctrl+Z')
-            action.triggered.connect(self.undo)
+    @plain_text.setter
+    def plain_text(self, text):
+        self.q_text.setPlainText(text)
+        self.update_undo_redo_menus()
 
-            self.context_menu.addAction(action)
 
-            action = QAction(
-                QIcon.fromTheme("edit-redo"),
-                "&Redo",
-                self.q_text
-            )
+    def setup_menu(self):
+        self.context_menu = QMenu()
+        action = QAction(
+            QIcon.fromTheme("edit-undo"),
+            "&Undo",
+            self.q_text
+        )
 
-            action.setShortcut('Ctrl+Y')
-            action.triggered.connect(self.redo)
+        action.setShortcut('Ctrl+Z')
+        action.triggered.connect(self.undo)
+        self.context_menu_actions['undo'] = action
+        self.context_menu.addAction(action)
 
-            self.context_menu.addAction(action)
+        action = QAction(
+            QIcon.fromTheme("edit-redo"),
+            "&Redo",
+            self.q_text
+        )
 
-        self.context_menu.exec_(QCursor.pos())
+        action.setShortcut('Ctrl+Y')
+        action.triggered.connect(self.redo)
+        self.context_menu_actions['redo'] = action
+        self.context_menu.addAction(action)
 
 
     def undo(self):
         self.doc.undo(self.q_text.textCursor())
+        self.update_undo_redo_menus()
 
 
     def redo(self):
         self.doc.redo(self.q_text.textCursor())
+        self.update_undo_redo_menus()
+
+
+    def update_undo_redo_menus(self):
+        can_undo = self.doc.can_undo()
+        can_redo = self.doc.can_redo()
+
+        self.context_menu_actions['undo'].setEnabled(can_undo)
+        self.context_menu_actions['redo'].setEnabled(can_redo)
+
+        self.undo_redo_update_cb(can_undo, can_redo)
 
 
     def query_changed(self):
@@ -145,16 +166,16 @@ class TextEditor(QObject):
             cursor.setPosition(position)
             self.q_text.setTextCursor(cursor)
 
+        self.update_undo_redo_menus()
+
 
     def eventFilter(self, obj, event):
-        #print('obj.objectName()')
         if event.type() == QEvent.KeyPress:
             if event.matches(QKeySequence.Undo):
-                print('undo triggered')
                 self.undo()
                 return True
+
             if event.matches(QKeySequence.Redo):
-                print('redo triggered')
                 self.redo()
                 return True
 

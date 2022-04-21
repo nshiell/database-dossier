@@ -29,8 +29,17 @@ class TextDocument(QTextDocument):
         }
 
 
+    def can_undo(self):
+        return len(self.undo_stack) > self.undo_position_back
+
+
+    def can_redo(self):
+        return self.undo_position_back > 1
+
+
     def undo(self, cursor):
-        print('udoing start')
+        if not self.can_undo():
+            return None
         undo_back_position_delta = 1
         text = self.toPlainText()
         should_store_current = (
@@ -50,7 +59,7 @@ class TextDocument(QTextDocument):
 
         new_position_back = self.undo_position_back + undo_back_position_delta
 
-        if len(self.undo_stack) > new_position_back:
+        if len(self.undo_stack) >= new_position_back:
             state = self.undo_stack[0 - new_position_back]
             if state:
                 self.setPlainText(state['text'])
@@ -71,6 +80,9 @@ class TextDocument(QTextDocument):
 
 
     def redo(self, cursor):
+        if not self.can_redo():
+            return None
+
         self.undo_ignore = True
         if len(self.undo_stack) == 0:
             return None
@@ -96,6 +108,12 @@ class TextDocument(QTextDocument):
                 self.undo_ignore = False
 
 
+    def add_to_undo_stack(self, cursor):
+        self.undo_stack.append(
+            self.create_text_state(self.toPlainText(), cursor.position())
+        )
+
+
     def add_to_undo_stack_if_needed(self, cursor):
         if not self.undo_ignore:
             position = cursor.position()
@@ -106,10 +124,7 @@ class TextDocument(QTextDocument):
             if len(text):
                 last_char_entered = text[position - 1]
                 if last_char_entered in ' ();\n\t\'"':
-                    self.undo_stack.append(
-                        self.create_text_state(text, position)
-                    )
-                    #print(len(self.undo_stack))
+                    self.add_to_undo_stack(cursor)
 
 
     def get_sql_fragment_start_end_points(self, cursor):
