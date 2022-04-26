@@ -2,14 +2,14 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import *
 
 
-class UndoRedoerWithCursor:
+class UndoRedoerWithCursor(list):
+    """
+    Snapshots of the text AND cursor positions
+    Ordered - first is oldest
+    """
     def __init__(self):
-        # Snapshots of the text AND cursor positions
-        # Ordered - first is oldest
-        self.undo_stack = []
-
         # How many back steps have we gone though
-        self.undo_position_back = 0
+        self.position_back = 0
 
         # Undoing content actually tried to trigger
         # a new change to the text, hence a new undo state
@@ -18,15 +18,46 @@ class UndoRedoerWithCursor:
 
 
     def add_text_and_position(self, text, position):
-        self.undo_stack.append({'text': text, 'position': position})
+        self.append({'text': text, 'position': position})
 
 
     def can_undo(self):
-        return len(self.undo_stack) > self.undo_position_back
+        return len(self) > self.position_back
 
 
     def can_redo(self):
-        return self.undo_position_back > 1
+        return self.position_back > 1
+
+
+    def apply_state(self, cursor, new_undo_position_back):
+        state = self[0 - new_undo_position_back]
+
+        cursor.clearSelection()
+        cursor.movePosition(
+            QTextCursor.Start,
+            QTextCursor.MoveAnchor
+        )
+
+        cursor.movePosition(
+            QTextCursor.Right,
+            QTextCursor.MoveAnchor,
+            state['position']
+        )
+
+        self.position_back = new_undo_position_back
+
+
+    def should_store_current_text(self, text):
+        if self.position_back != 0:
+            return False
+
+        if len(self) == 0:
+            return False
+
+        if text == self[-1]['text']:
+            return False
+
+        return True
 
 
     def undo(self, cursor, text):
@@ -34,38 +65,18 @@ class UndoRedoerWithCursor:
             return None
 
         undo_back_position_delta = 1
-        should_store_current = (
-            self.undo_position_back == 0 and
-            self.undo_stack and
-            text != self.undo_stack[-1]['text']
-        )
 
-        if should_store_current:
+        if self.should_store_current_text(text):
             position = cursor.position()
             self.add_text_and_position(text, position)
-            undo_back_position_delta+= 1
+            undo_back_position_delta = 2
 
-        self.undo_ignore = True
+        new_position_back = self.position_back + undo_back_position_delta
 
-        new_position_back = self.undo_position_back + undo_back_position_delta
-
-        if len(self.undo_stack) >= new_position_back:
-            state = self.undo_stack[0 - new_position_back]
-            if state:
-                cursor.clearSelection()
-                cursor.movePosition(
-                    QTextCursor.Start,
-                    QTextCursor.MoveAnchor
-                )
-
-                cursor.movePosition(
-                    QTextCursor.Right,
-                    QTextCursor.MoveAnchor,
-                    state['position']
-                )
-
-                self.undo_position_back = new_position_back
-                return state['text']
+        if len(self) >= new_position_back:
+            self.undo_ignore = True
+            self.apply_state(cursor, new_position_back)
+            return self[0 - new_position_back]['text']
 
         return None
 
@@ -74,27 +85,15 @@ class UndoRedoerWithCursor:
         if not self.can_redo():
             return None
 
-        self.undo_ignore = True
-        if len(self.undo_stack) == 0:
+        if len(self) == 0:
             return None
 
-        if len(self.undo_stack) > self.undo_position_back - 1:
-            state = self.undo_stack[0 - (self.undo_position_back - 1)]
-            if state:
-                cursor.clearSelection()
-                cursor.movePosition(
-                    QTextCursor.Start,
-                    QTextCursor.MoveAnchor
-                )
+        new_position_back = self.position_back - 1
 
-                cursor.movePosition(
-                    QTextCursor.Right,
-                    QTextCursor.MoveAnchor,
-                    state['position']
-                )
-
-                self.undo_position_back-= 1
-                return state['text']
+        if len(self) > new_position_back:
+            self.undo_ignore = True
+            self.apply_state(cursor, new_position_back)
+            return self[0 - new_position_back]['text']
 
         return None
 
@@ -160,24 +159,25 @@ class TextDocument(QTextDocument):
 
         return get_sql_fragment_start_end_points(sql, position)
 
+
 def get_sql_fragment_start_end_points(sql, position):
     # Run back the the previous ';' and ahead to the next one
-    (sql_before_cursor, sql_after_cursor) = get_sql_before_and_after(sql, position)
+    (sql_before, sql_after) = get_sql_before_and_after(sql, position)
 
-    if should_execute_previous_sql(sql_before_cursor, sql_after_cursor):
+    if should_execute_previous_sql(sql_before, sql_after):
         position-= 1
         # Run back before the previous ';' and ahead to the next one
-        (sql_before_cursor, sql_after_cursor) = get_sql_before_and_after(sql, position)
+        (sql_before, sql_after) = get_sql_before_and_after(sql, position)
 
-    sql_before_cursor_length = len(sql_before_cursor)
-    sql_after_cursor_length = len(sql_after_cursor)
+    sql_before_length = len(sql_before)
+    sql_after_length = len(sql_after)
 
     # After this substring is a semicolon for the query - include it too
-    last_char_pos = position + sql_after_cursor_length
+    last_char_pos = position + sql_after_length
     if sql[last_char_pos : last_char_pos + 1] == ';':
-        sql_after_cursor_length+=1
+        sql_after_length+=1
 
-    return (position - sql_before_cursor_length, position + sql_after_cursor_length)
+    return (position - sql_before_length, position + sql_after_length)
 
 
 def get_sql_before_and_after(sql, position):
