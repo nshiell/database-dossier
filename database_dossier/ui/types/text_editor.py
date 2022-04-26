@@ -81,7 +81,10 @@ class TextEditor(QObject):
 
     @plain_text.setter
     def plain_text(self, text):
-        self.q_text.setPlainText(text)
+        if text == '':
+            self.doc.setup_blank()
+        else:
+            self.q_text.setPlainText(text)
         self.update_undo_redo_menus()
 
 
