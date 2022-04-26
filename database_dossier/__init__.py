@@ -92,8 +92,9 @@ class ConnectionDialog(QDialog, WindowMixin):
                 password,
                 self.f('port').text()
             )
-        except mysql.connector.errors.DatabaseError as e:
+        except mysql.connector.errors.Error as e:
             show_connection_error(str(e))
+            return None
         
         if dry_run:
             show_connection_ok()
