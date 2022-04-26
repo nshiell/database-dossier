@@ -1,7 +1,7 @@
 import mysql.connector
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
-from PyQt5.QtGui import QTextCursor, QIcon, QFont
+from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from .ui import *
 from . import syntax_highlighter
@@ -228,6 +228,35 @@ class MainWindow(QMainWindow, WindowMixin):
         self.f('text_edit_sql').setTextCursor(text_cursor)
 
 
+    @property
+    def is_dark(self):
+        color = self.palette().color(QPalette.Background)
+        average = (color.red() + color.green() + color.blue()) / 3
+
+        return average <= 128
+
+
+    def flash_tab(self, tab_index):
+        q_tab_bar = self.f('tab_result_sets').tabBar()
+        old_color = q_tab_bar.tabTextColor(tab_index)
+
+        new_color = QColor('#FFFF66') if self.is_dark else QColor('#444400')
+        times = 0
+
+        def change():
+            nonlocal times
+
+            if times % 2:
+                q_tab_bar.setTabTextColor(tab_index, old_color)
+            else:
+                q_tab_bar.setTabTextColor(tab_index, new_color)
+
+            if times < 5:
+                times+= 1
+                QTimer.singleShot(200, change)
+
+        change()
+
 
     def execute(self, result_set_index):
         text_edit_sql = self.f('text_edit_sql')
@@ -259,9 +288,11 @@ class MainWindow(QMainWindow, WindowMixin):
             result_set_name = 'result_set_' + str(result_set_index + 1)
             table_model = self.result_sets[result_set_name]
             self.execute_update_table_model(table_model, sql_fragment)
-            self.f('tab_result_sets').setCurrentIndex(2 + result_set_index)
 
+            tab_index = 2 + result_set_index
+            self.f('tab_result_sets').setCurrentIndex(tab_index)
             text_edit_sql.setFocus()
+            self.flash_tab(tab_index)
 
 
     def select_tree_object(self, model_index):
