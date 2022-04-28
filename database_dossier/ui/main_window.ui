@@ -31,6 +31,9 @@
         <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
+        <property name="styleSheet">
+         <string notr="true">background-color: black</string>
+        </property>
         <attribute name="title">
          <string>SQL</string>
         </attribute>
@@ -45,13 +48,14 @@
              <property name="styleSheet">
               <string notr="true">background-color: black;
 font-size: 14pt;
-font-family: 'Courier New', 'Ubuntu Mono'</string>
+font-family: 'Courier New', 'Ubuntu Mono';
+border: 1px solid black</string>
              </property>
              <property name="undoRedoEnabled">
               <bool>true</bool>
              </property>
              <property name="placeholderText">
-              <string># Type SQL here</string>
+              <string># Enter some SQL here to query the selected database.</string>
              </property>
             </widget>
            </item>
@@ -59,6 +63,12 @@ font-family: 'Courier New', 'Ubuntu Mono'</string>
             <layout class="QVBoxLayout" name="verticalLayout_3">
              <item>
               <widget class="QPushButton" name="execute_1">
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">color: white; background-color: #444444; font-weight: bold</string>
+               </property>
                <property name="text">
                 <string>1</string>
                </property>
@@ -69,6 +79,9 @@ font-family: 'Courier New', 'Ubuntu Mono'</string>
              </item>
              <item>
               <widget class="QPushButton" name="execute_2">
+               <property name="styleSheet">
+                <string notr="true">color: white; background-color: #444444; font-weight: bold</string>
+               </property>
                <property name="text">
                 <string>2</string>
                </property>
@@ -79,6 +92,9 @@ font-family: 'Courier New', 'Ubuntu Mono'</string>
              </item>
              <item>
               <widget class="QPushButton" name="execute_3">
+               <property name="styleSheet">
+                <string notr="true">color: white; background-color: #444444; font-weight: bold</string>
+               </property>
                <property name="text">
                 <string>3</string>
                </property>
@@ -190,6 +206,9 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
          <layout class="QGridLayout" name="gridLayout_6">
           <item row="0" column="0">
            <widget class="QTableView" name="table_view_result_set_1">
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
             <property name="alternatingRowColors">
              <bool>true</bool>
             </property>
@@ -287,7 +306,8 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="create_connection">
    <property name="icon">
-    <iconset theme="document-new"/>
+    <iconset theme="document-new">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Connect</string>
@@ -298,7 +318,8 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
   </action>
   <action name="quit">
    <property name="icon">
-    <iconset theme="application-exit"/>
+    <iconset theme="application-exit">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Quit</string>
@@ -309,7 +330,8 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
   </action>
   <action name="action_undo">
    <property name="icon">
-    <iconset theme="edit-undo"/>
+    <iconset theme="edit-undo">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Undo</string>
@@ -320,7 +342,8 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
   </action>
   <action name="action_redo">
    <property name="icon">
-    <iconset theme="edit-redo"/>
+    <iconset theme="edit-redo">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Redo</string>
