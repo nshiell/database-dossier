@@ -10,15 +10,7 @@ class UndoRedoerWithCursor(list):
     def __init__(self):
         # How many back steps have we gone though
         self.position_back = 0
-
-        # Undoing content actually tried to trigger
-        # a new change to the text, hence a new undo state
-        # would be created, this flag prevents this
-        self.undo_ignore = False
-
-
-    def add_text_and_position(self, text, position):
-        self.append({'text': text, 'position': position})
+        self.starting_point_set = False
 
 
     def can_undo(self):
@@ -29,54 +21,45 @@ class UndoRedoerWithCursor(list):
         return self.position_back > 0
 
 
-    def apply_state(self, cursor, new_position_back):
-        position = self[0 - new_position_back - 1]['position']
-
-        cursor.clearSelection()
-        cursor.movePosition(QTextCursor.Start, QTextCursor.MoveAnchor)
-        cursor.movePosition(QTextCursor.Right, QTextCursor.MoveAnchor, position)
-
-        self.position_back = new_position_back
+    def add(self, text, position):
+        self.append({'text': text, 'position': position})
 
 
-    def should_store_current_text(self, text):
-        if self.position_back != 0:
-            return False
+    def update(self, text, position):
+        self[-1] = {'text': text, 'position': position}
 
+
+    def should_add(self, text, position):
         if len(self) == 0:
-            return False
+            return True
 
-        if text == self[-1]['text']:
-            return False
+        last_text = self[-1]['text']
 
-        return True
+        if not self.starting_point_set and (last_text != text):
+            self.starting_point_set = True
+            return True
 
-
-    def undo(self, cursor, text):
-        if not self.can_undo():
-            return None
-
-        position_delta = 1
-
-        if self.should_store_current_text(text):
-            self.add_text_and_position(text, cursor.position())
-        new_position_back = self.position_back + position_delta
-        if self.can_undo():
-            self.undo_ignore = True
-            self.apply_state(cursor, new_position_back)
-            return self[0 - new_position_back - 1]['text']
-
-        return None
+        return len(last_text) and last_text[-1] in ' ();\n\t\'"'
 
 
-    def redo(self, cursor, text):
-        if self.can_redo():
-            new_position_back = self.position_back - 1
-            self.undo_ignore = True
-            self.apply_state(cursor, new_position_back)
-            return self[0 - new_position_back - 1]['text']
+    def update_state(self, text, position):
+        if self.should_add(text, position):
+            self.add(text, position)
+        else:
+            self.update(text, position)
 
-        return None
+
+    def undo(self):
+        self.position_back+= 1
+
+
+    def redo(self):
+        self.position_back-= 1
+
+
+    @property
+    def current(self):
+        return self[0 - self.position_back - 1]
 
 
 class TextDocument(QTextDocument):
@@ -84,9 +67,13 @@ class TextDocument(QTextDocument):
         super().__init__(parent)
         self.undo_redoer = UndoRedoerWithCursor()
 
-        # The undo/redo doesn't work
-        # if we set HTML content anyway
+        # The undo/redo doesn't work if we set HTML content anyway
         self.setUndoRedoEnabled(False)
+
+        # Undoing content actually tries to trigger
+        # a new change to the text, hence a new undo state
+        # would be created, this flag prevents this
+        self.ignore_state_update = False
 
 
     def can_undo(self):
@@ -97,42 +84,39 @@ class TextDocument(QTextDocument):
         return self.undo_redoer.can_redo()
 
 
-    def undo(self, cursor):
-        text = self.undo_redoer.undo(cursor, self.toPlainText())
-
-        if text is not None:
-            self.setPlainText(text)
-            self.undo_redoer.undo_ignore = False
+    @property
+    def position(self):
+        pass
 
 
-    def redo(self, cursor):
-        text = self.undo_redoer.redo(cursor, self.toPlainText())
-
-        if text is not None:
-            self.setPlainText(text)
-            self.undo_redoer.undo_ignore = False
+    @position.setter
+    def position(self, position):
+        self.update_undo_redoer(position)
 
 
-    def setup_blank(self):
-        self.undo_redoer.add_text_and_position('', 0)
+    def update_undo_redoer(self, position):
+        if not self.ignore_state_update:
+            self.undo_redoer.update_state(self.toPlainText(), position)
 
 
-    def add_to_undo_stack_if_needed(self, cursor):
-        if not self.undo_redoer.undo_ignore:
-            position = cursor.position()
+    def undo(self, cursor=None):
+        if self.undo_redoer.can_undo():
+            self.ignore_state_update = True
+            self.undo_redoer.undo()
+            self.setPlainText(self.undo_redoer.current['text'])
+            self.ignore_state_update = False
+            if cursor:
+                cursor.setPosition(self.undo_redoer.current['position'])
 
-            text = self.toPlainText()
-            should_add = False
-            if len(text):
-                last_char_entered = text[position - 1]
-                if last_char_entered in ' ();\n\t\'"':
-                    should_add = True
-            else:
-                should_add = True
 
-            if should_add:
-                self.undo_redoer.add_text_and_position(text, cursor.position())
-
+    def redo(self, cursor=None):
+        if self.undo_redoer.can_redo():
+            self.ignore_state_update = True
+            self.undo_redoer.redo()
+            self.setPlainText(self.undo_redoer.current['text'])
+            self.ignore_state_update = False
+            if cursor:
+                cursor.setPosition(self.undo_redoer.current['position'])
 
     def get_sql_fragment_start_end_points(self, cursor):
         """
