@@ -29,7 +29,7 @@ class UndoRedoerWithCursor(list):
         self[-1] = {'text': text, 'position': position}
 
 
-    def should_add(self, text, position):
+    def should_add(self, text):
         if len(self) == 0:
             return True
 
@@ -42,11 +42,20 @@ class UndoRedoerWithCursor(list):
         return len(last_text) and last_text[-1] in ' ();\n\t\'"'
 
 
-    def update_state(self, text, position):
-        if self.should_add(text, position):
-            self.add(text, position)
+    def truncate_when_updating(self):
+        if self.position_back > 0:
+            for i in range(0, self.position_back):
+                self.pop()
+            self.position_back = 0
+
+
+    def update_state(self, text, cursor_position):
+        self.truncate_when_updating()
+
+        if self.should_add(text):
+            self.add(text, cursor_position)
         else:
-            self.update(text, position)
+            self.update(text, cursor_position)
 
 
     def undo(self):

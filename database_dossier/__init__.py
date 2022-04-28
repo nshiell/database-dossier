@@ -122,7 +122,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.connections = []
         self.active_connection_index = 0
         self.result_sets = {}
-        self.text_editor = None
+        self.setup_text_editor()
         self.setup()
 
 
@@ -398,22 +398,21 @@ class MainWindow(QMainWindow, WindowMixin):
                 show_connection_error(str(e))
 
 
+    def setup_text_editor(self):
+        def update_cb(can_undo, can_redo): 
+            self.get_menu_action('action_undo').setEnabled(can_undo)
+            self.get_menu_action('action_redo').setEnabled(can_redo)
+
+        self.text_editor = TextEditor(self, self.f('text_edit_sql'),
+            update_cb=update_cb
+        )
+
+
     def setup(self):
         connection_dialog = ConnectionDialog(self)
         self.menu('create_connection', connection_dialog.show)
-
-        self.text_editor = TextEditor(self,
-            self.f('text_edit_sql'),
-            lambda can_undo, can_redo: (
-                self.get_menu_action('action_undo').setEnabled(can_undo),
-                self.get_menu_action('action_redo').setEnabled(can_redo)
-            )
-        )
-
         self.menu('action_undo', self.text_editor.undo)
         self.menu('action_redo', self.text_editor.redo)
-        
-        
         self.menu('quit', qApp.quit)
 
         self.setup_result_set('result_set_1')
@@ -433,7 +432,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.text_edit_log_document = QTextDocument(self)
         self.text_edit_log_document.setDefaultStyleSheet(syntax_highlighter.style())
         text_edit_log.setDocument(self.text_edit_log_document)
-
 
         self.bind('execute_1', 'clicked', lambda: self.execute(0))
         self.bind('execute_2', 'clicked', lambda: self.execute(1))

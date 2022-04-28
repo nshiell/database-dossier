@@ -53,17 +53,15 @@ class TextEditor(QObject):
     * And wappers for undo/redo
     """
 
-    def __init__(self, parent, q_text, undo_redo_update_cb):
+    def __init__(self, parent, q_text, **kwargs):
         super().__init__(parent)
+        self.options = kwargs
 
         self.q_text = q_text
-        self.formatter = create_formatter(
-            self.q_text.styleSheet()
-        )
+        self.formatter = create_formatter(self.q_text.styleSheet())
         self.doc = TextDocument(parent)
         self.q_text.setDocument(self.doc)
         self.is_processing_highlighting = False
-        self.undo_redo_update_cb = undo_redo_update_cb
 
         self.context_menu_actions = {}
         self.setup_menu()
@@ -81,11 +79,8 @@ class TextEditor(QObject):
 
     @plain_text.setter
     def plain_text(self, text):
-        if text == '':
-            self.doc.setup_blank()
-        else:
-            self.q_text.setPlainText(text)
-        self.update_undo_redo_menus()
+        self.q_text.setPlainText(text)
+        self.doc.position = self.q_text.textCursor().position()
 
 
     def setup_menu(self):
@@ -115,12 +110,10 @@ class TextEditor(QObject):
 
     def undo(self):
         self.doc.undo(self.q_text.textCursor())
-        self.update_undo_redo_menus()
 
 
     def redo(self):
         self.doc.redo(self.q_text.textCursor())
-        self.update_undo_redo_menus()
 
 
     def update_undo_redo_menus(self):
@@ -130,7 +123,8 @@ class TextEditor(QObject):
         self.context_menu_actions['undo'].setEnabled(can_undo)
         self.context_menu_actions['redo'].setEnabled(can_redo)
 
-        self.undo_redo_update_cb(can_undo, can_redo)
+        if 'update_cb' in self.options:
+            self.options['update_cb'](can_undo, can_redo)
 
 
     def query_changed(self):
@@ -152,11 +146,11 @@ class TextEditor(QObject):
         # the cursor will jump to the end of the text.
         # To avoid that we remember the current position of the cursor.
         cursor = self.q_text.textCursor()
-        self.doc.add_to_undo_stack_if_needed(cursor)
-
         position = cursor.position()
         # Set highlighted text back to editor which will cause the
         # cursor to jump to the end of the text.
+
+        self.doc.position = cursor.position()
 
         text = self.q_text.toPlainText()
 
