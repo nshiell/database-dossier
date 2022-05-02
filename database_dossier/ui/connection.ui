@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>274</width>
-    <height>147</height>
+    <width>280</width>
+    <height>166</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -58,6 +58,9 @@
      </item>
      <item>
       <widget class="QLineEdit" name="password">
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
        <property name="placeholderText">
         <string>Password (saved in plantext)</string>
        </property>
@@ -69,6 +72,9 @@
         <widget class="QPushButton" name="test">
          <property name="text">
           <string>Test</string>
+         </property>
+         <property name="icon">
+          <iconset theme="know"/>
          </property>
         </widget>
        </item>
