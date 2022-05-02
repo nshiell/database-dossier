@@ -413,6 +413,34 @@ class MainWindow(QMainWindow, WindowMixin):
         self.menu('create_connection', connection_dialog.show)
         self.menu('action_undo', self.text_editor.undo)
         self.menu('action_redo', self.text_editor.redo)
+        self.menu('action_cut', self.text_editor.q_text.cut)
+        self.menu('action_copy', self.text_editor.q_text.copy)
+        self.menu('paste', self.text_editor.q_text.paste)
+        self.menu('action_select_query', self.select_query)
+        self.menu('action_select_all', self.text_editor.q_text.selectAll)
+
+        self.menu('text_size_increase',
+            self.text_editor.font_point_size_increase
+        )
+        self.menu('text_size_descrease',
+            self.text_editor.font_point_size_decrease
+        )
+
+
+        def font_choice():
+            old_font = QFont(
+                self.text_editor.font_name,
+                pointSize=self.text_editor.font_point_size,
+                italic=self.text_editor.font_italic,
+                weight=75 if self.text_editor.font_bold else 50
+            )
+
+            new_font, valid = QFontDialog.getFont(QFont(old_font))
+            if valid:
+                self.text_editor.font = new_font
+
+        self.menu('font', font_choice)
+
         self.menu('quit', qApp.quit)
 
         self.setup_result_set('result_set_1')
