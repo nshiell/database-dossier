@@ -30,43 +30,95 @@ def save_editor_sql(sql_path, editor_sql):
     open(sql_path, "w").write(editor_sql)
 
 
+def valid(container, key, data_type, min_size=None, max_size=None):
+    if key not in container:
+        return False
+
+    if not isinstance(container[key], data_type):
+        return False
+
+    if data_type == str:
+        len_string = len(container[key])
+
+        if max_size is not None and len_string > max_size:
+            return False
+
+        if min_size is not None and len_string < min_size:
+            return False
+    elif data_type == int:
+        if  max_size is not None and  container[key] > max_size:
+            return False
+
+        if min_size is not None and container[key] < min_size:
+            return False
+    elif data_type == list:
+        if  max_size is not None and len(container[key]) > max_size:
+            return False
+
+    return True
+
 class State:
+    def parse_connection(self, connection):
+        self.connections.append({
+            user: connection_data['user']
+                if valid(c, 'user', str, 0, 200) else None,
+
+            password: connection_data['password']
+                if valid(c, 'password', str, 0, 200) else None,
+
+            host: connection_data['host']
+                if valid(c, 'host', str, 0, 200) else None,
+
+            port: connection_data['port']
+                if valid(c, 'port', str, 0, 200) else None
+        })
+
+
     def __init__(self, data={}):
-        if data == None:
-            self.user = None
-            self.password = None
-            self.host = None
-            self.port = None
-            self.sql_path = os.path.join(dirs.user_data_dir, 'editor.sql')
-            self.editor_sql = None
-        else:
-            self.user = data['user'] if 'user' in data else None
-            self.password = data['password'] if 'password' in data else None
-            self.host = data['host'] if 'host' in data else None
-            self.port = data['port'] if 'port' in data else None
-    
-            if 'sql_path' in data:
+        self.editor_sql = None
+        self.sql_path = os.path.join(dirs.user_data_dir, 'editor.sql')
+        self.connections = []
+        self.active_connection_index = None
+
+        if isinstance(data, dict):
+            if valid(data, 'connections', list, 0, 50):
+                for connection in data['connections']:
+                    if isinstance(c, dict):
+                        self.parse_connection(data['connections'])
+
+            # Todo test
+            active_connection_index_valid = valid(
+                data,
+                'active_connection_index',
+                int,
+                0,
+                len(self.connections)
+            )
+
+            if active_connection_index_valid:
+                self.active_connection_index = data['active_connection_index']
+
+            if 'sql_path' in data and data['sql_path'] is str:
                 self.sql_path = data['sql_path']
             else:
                 self.sql_path = os.path.join(dirs.user_data_dir, 'editor.sql')
-            
-            if os.path.exists(self.sql_path):
+
+            if self.sql_path and os.path.exists(self.sql_path):
                 self.editor_sql = open(self.sql_path, "r").read()
-            else:
-                self.editor_sql = None
 
 
     def to_dict(self):
         return {
-            "user": self.user,
-            "password": self.password,
-            "port": self.port,
-            "host": self.host,
-            "sql_path": self.sql_path
+            "version": '0.0.1',
+            "connections": self.connections,
+            "sql_path": self.sql_path,
+            "active_connection_index": self.active_connection_index
         }
+
 
 def load_state():
     return State(get_config())
+
 
 def save_state(state):
     set_config(state.to_dict())
@@ -76,9 +128,3 @@ def save_state(state):
         os.makedirs(sql_dir)
 
     save_editor_sql(state.sql_path, state.editor_sql)
-
-
-#def 
-#user_data_dir
-
-
