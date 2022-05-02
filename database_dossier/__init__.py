@@ -405,7 +405,11 @@ class MainWindow(QMainWindow, WindowMixin):
                 if connection:
                     self.connect(connection, active_conection_state.password)
             except mysql.connector.errors.DatabaseError as e:
-                show_connection_error(str(e))
+                self.result_sets['data'].headers = ['Error']
+                self.result_sets['data'].record_set = [[str(e)]]
+                self.result_sets['data'].is_error = True
+                self.result_sets['data'].update_emit()
+                self.show_record_set(0)
 
 
     def setup_text_editor(self):
