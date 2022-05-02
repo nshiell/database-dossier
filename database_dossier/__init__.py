@@ -258,6 +258,16 @@ class MainWindow(QMainWindow, WindowMixin):
         change()
 
 
+    def select_query(self):
+        text_edit_sql = self.f('text_edit_sql')
+        doc = text_edit_sql.document()
+        text_cursor = text_edit_sql.textCursor()
+
+        start_end_points = doc.get_sql_fragment_start_end_points(text_cursor)
+        if start_end_points:
+            self.select_sql_fragment(*start_end_points)
+
+
     def execute(self, result_set_index):
         text_edit_sql = self.f('text_edit_sql')
         doc = text_edit_sql.document()
