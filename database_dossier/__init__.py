@@ -385,15 +385,25 @@ class MainWindow(QMainWindow, WindowMixin):
         self.state = load_state()
         self.text_editor.plain_text = self.state.editor_sql
 
-        if self.state.host:
+        valid_connection_index = (
+            self.state.active_connection_index is not None and
+            self.state.active_connection_index in self.state.connections
+        )
+
+        if valid_connection_index:
+            active_conection_state = (
+                self.state.connections[self.state.active_connection_index]
+            )
             try:
                 connection = create_connection(
-                    self.state.host,
-                    self.state.user,
-                    self.state.password,
-                    self.state.port
+                    active_conection_state.host,
+                    active_conection_state.user,
+                    active_conection_state.password,
+                    active_conection_state.port
                 )
-                self.connect(connection, self.state.password)
+
+                if connection:
+                    self.connect(connection, active_conection_state.password)
             except mysql.connector.errors.DatabaseError as e:
                 show_connection_error(str(e))
 
