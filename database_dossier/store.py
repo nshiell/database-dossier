@@ -60,17 +60,17 @@ def valid(container, key, data_type, min_size=None, max_size=None):
 class State:
     def parse_connection(self, connection):
         self.connections.append({
-            user: connection_data['user']
-                if valid(c, 'user', str, 0, 200) else None,
+            'user': connection['user']
+                if valid(connection, 'user', str, 0, 200) else None,
 
-            password: connection_data['password']
-                if valid(c, 'password', str, 0, 200) else None,
+            'password': connection['password']
+                if valid(connection, 'password', str, 0, 200) else None,
 
-            host: connection_data['host']
-                if valid(c, 'host', str, 0, 200) else None,
+            'host': connection['host']
+                if valid(connection, 'host', str, 0, 200) else None,
 
-            port: connection_data['port']
-                if valid(c, 'port', str, 0, 200) else None
+            'port': connection['port']
+                if valid(connection, 'port', int, 0, 10000) else None
         })
 
 
@@ -83,8 +83,8 @@ class State:
         if isinstance(data, dict):
             if valid(data, 'connections', list, 0, 50):
                 for connection in data['connections']:
-                    if isinstance(c, dict):
-                        self.parse_connection(data['connections'])
+                    if isinstance(connection, dict):
+                        self.parse_connection(connection)
 
             # Todo test
             active_connection_index_valid = valid(
