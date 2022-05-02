@@ -1,3 +1,4 @@
+import csv
 from pygments import highlight as _highlight
 from pygments.lexers import SqlLexer
 from pygments.formatters import HtmlFormatter
@@ -13,7 +14,7 @@ def style():
 
 
 def create_formatter(stylesheet):
-    formatter = HtmlFormatter(cssstyles=stylesheet, style='native')
+    formatter = HtmlFormatter(style='native', prestyles=stylesheet)
     formatter.noclasses = True
 
     return formatter
@@ -81,6 +82,139 @@ class TextEditor(QObject):
     def plain_text(self, text):
         self.q_text.setPlainText(text)
         self.doc.position = self.q_text.textCursor().position()
+
+
+    def font_point_size_increase(self):
+        if self.font_point_size < 90:
+            self.font_point_size+= 1
+
+
+    def font_point_size_decrease(self):
+        if self.font_point_size > 4:
+            self.font_point_size-= 1
+
+
+    @property
+    def font(self):
+        return QFont(
+            self.font_name,
+            pointSize=self.font_point_size,
+            italic=False,
+            weight=1
+        )
+
+
+    @font.setter
+    def font(self, font):
+        self.set_stylesheet_property([
+            ('font-size', str(font.pointSize()) + 'pt', False),
+            ('font-family', font.family(), True),
+            (
+                'font-weight',
+                'bold' if font.weight() > 50 else 'normal',
+                False
+            ),
+            (
+                'font-style',
+                'italic' if font.italic() else 'normal',
+                False
+            )
+        ])
+
+
+
+    @property
+    def font_bold(self):
+        stylesheet = self.q_text.styleSheet()
+        if 'font-weight' not in stylesheet:
+            return False
+
+        value = (stylesheet.split('font-weight')[1]
+            .split(':')[1].split(';')[0].strip()
+        )
+        return value == 'bold'
+
+
+    @property
+    def font_italic(self):
+        stylesheet = self.q_text.styleSheet()
+        if 'font-style' not in stylesheet:
+            return False
+
+        value = (stylesheet.split('font-style')[1]
+            .split(':')[1].split(';')[0].strip()
+        )
+        return value == 'italic'
+
+
+    @property
+    def font_point_size(self):
+        stylesheet = self.q_text.styleSheet()
+        if 'font-size' not in stylesheet:
+            return None
+
+        return int(
+            stylesheet.split('font-size')[1].split(':')[1].split(';')[0].strip()[:-2]
+        )
+
+
+    @font_point_size.setter
+    def font_point_size(self, size):
+        self.set_stylesheet_property([('font-size', str(size) + 'pt', False)])
+
+
+    @property
+    def font_name(self):
+        stylesheet = self.q_text.styleSheet()
+        if 'font-family' not in stylesheet:
+            return None
+
+        font_line = stylesheet.split('font-family')[1].split(';')[0]
+        fonts = font_line.replace(':', '').replace("'", '"').strip()
+
+        font_list = list(csv.reader([fonts],
+            skipinitialspace=True,
+            delimiter=',',
+            quotechar='"'
+        ))[0]
+
+
+        available_fonts = QFontDatabase().families()
+        for font in font_list:
+            if font in available_fonts:
+                return font
+
+        return None
+
+
+    @font_name.setter
+    def font_name(self, font_name):
+        self.set_stylesheet_property([('font-family', font_name, True)])
+
+
+
+    def set_stylesheet_property(self, changes):
+        stylesheet = self.q_text.styleSheet()
+
+        if len(stylesheet) and stylesheet[-1] != ';':
+            stylesheet+= ';'
+
+        lines = stylesheet.split('\n')
+
+        for (property_name, value, quote) in changes:
+            if property_name in stylesheet:
+                lines = [x for x in lines if property_name not in x]
+    
+            if quote:
+                value = "'" + value + "'"
+    
+            lines.append(property_name + ': ' + value + ';')
+
+        stylesheet = '\n'.join(lines)
+        self.q_text.setStyleSheet(stylesheet)
+        self.formatter = create_formatter(stylesheet)
+        self.query_changed()
+
 
 
     def setup_menu(self):
