@@ -41,48 +41,37 @@ def create_table_tree_item(name):
 
 
 class ConnectionDialog(QDialog, WindowMixin):
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, main_win):
+        super().__init__(main_win)
 
         self.setFixedSize(QSize(300, 140))
         self.load_xml('connection.ui')
 
-        self.bind('test', 'clicked', lambda: self.create_connection(True))
-        
+        self.bind('test', 'clicked', lambda: main_win.test_connection(
+            **self.connection_dict
+        ))
+
+        self.bind('button_box.Ok', 'clicked', self.add)
         self.bind('button_box.Cancel', 'clicked', self.close)
-        self.bind('button_box.Ok', 'clicked', self.create_connection)
 
 
-    def create_connection(self, dry_run = False):
-        password = self.f('password').text()
+    def add(self):
+        connected = self.parent().add_connection_and_activate(
+            **self.connection_dict
+        )
 
-        try:
-            connection = create_connection(
-                self.f('host').text(),
-                self.f('user').text(),
-                password,
-                self.f('port').text()
-            )
-        except mysql.connector.errors.Error as e:
-            show_connection_error(str(e))
-            return None
-        
-        if dry_run:
-            show_connection_ok()
-        else:
-            self.parent().connect(connection, password)
+        if connected:
             self.close()
 
 
-def create_connection(host, user, password, port):
-    return mysql.connector.connect(
-        host=host,
-        user=user,
-        password=password,
-        auth_plugin='mysql_native_password',
-        port=port,
-        autocommit=True
-    )
+    @property
+    def connection_dict(self):
+        return {
+            'host'     : self.f('host').text(),
+            'port'     : self.f('port').text(),
+            'user'     : self.f('user').text(),
+            'password' : self.f('password').text()
+        }
 
 
 class DatabaseMixin:
