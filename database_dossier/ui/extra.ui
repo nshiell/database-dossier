@@ -97,14 +97,7 @@
     <property name="title">
      <string>editor</string>
     </property>
-    <widget class="QMenu" name="action_insert_extra">
-     <property name="title">
-      <string>&amp;Insert</string>
-     </property>
-     <addaction name="action_insert_blank_extra"/>
-    </widget>
     <addaction name="separator"/>
-    <addaction name="action_insert_extra"/>
     <addaction name="action_undo_extra"/>
     <addaction name="action_redo_extra"/>
     <addaction name="separator"/>
@@ -116,7 +109,14 @@
     <addaction name="action_text_size_decrease_extra"/>
     <addaction name="action_select_query_extra"/>
    </widget>
+   <widget class="QMenu" name="action_result_set">
+    <property name="title">
+     <string>result_set</string>
+    </property>
+    <addaction name="action_copy_cell_result_set"/>
+   </widget>
    <addaction name="editor"/>
+   <addaction name="action_result_set"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionUndo">
@@ -241,6 +241,17 @@
   <action name="action_insert_blank_extra">
    <property name="text">
     <string>Table1</string>
+   </property>
+  </action>
+  <action name="action_copy_cell_result_set">
+   <property name="icon">
+    <iconset theme="edit-copy"/>
+   </property>
+   <property name="text">
+    <string>&amp;Copy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+C</string>
    </property>
   </action>
  </widget>

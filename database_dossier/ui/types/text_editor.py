@@ -75,6 +75,7 @@ class TextEditor(QObject):
     def plain_text(self):
         return self.q_text.toPlainText()
 
+
     @plain_text.setter
     def plain_text(self, text):
         self.q_text.setPlainText(text)

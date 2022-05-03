@@ -313,19 +313,28 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         table_view.setModel(self.result_sets[name])
         table_view.setContextMenuPolicy(Qt.CustomContextMenu)
 
-        def context_menu(point):
-            index = table_view.indexAt(point)
-            menu = QMenu(self)
-            action1 = QAction(QIcon("edit-copy"), "&Copy")
-            action1.triggered.connect(lambda:
-                # @todo fixme!
-                app.clipboard().setText(index.data())
+        table_view.customContextMenuRequested.connect(lambda:
+            self.extra_ui.get_menu_action('action_result_set').exec_(
+                QCursor.pos()
             )
+        )
 
-            menu.addAction(action1)
-            menu.exec_(QCursor.pos())
 
-        table_view.customContextMenuRequested.connect(context_menu)
+    def copy_cell(self):
+        table_views = [
+            'table_view_data',
+            'table_view_schema',
+            'table_view_result_set_1',
+            'table_view_result_set_2',
+            'table_view_result_set_3'
+        ]
+
+        table_view = self.f(table_views[self.tab_result_sets.currentIndex()])
+
+        QApplication.instance().clipboard().setText(
+            table_view.currentIndex().data()
+        )
+        
 
 
     def log_line(self, sql):
@@ -629,7 +638,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
             context_menu=self.extra_ui.get_menu_action('editor')
         )
 
-        self.bind_menu(self.extra_ui)
+        self.bind_menu(self.extra_ui, '_extra')
 
     def add_statusbar(self):
         self.statusBar().addPermanentWidget(
@@ -638,11 +647,8 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         )
 
 
-    def bind_menu(self, window=None):
-        if window:
-            s = '_extra'
-        else:
-            s = ''
+    def bind_menu(self, window=None, s=''):
+        if not window:
             window = self
 
         e = self.text_editor
@@ -658,6 +664,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         window.menu('action_text_size_decrease' + s, e.font_point_size_decrease)
         window.menu('action_font' + s, self.show_font_choice)
         window.menu('action_quit' + s, qApp.quit)
+        window.menu('action_copy_cell' + s, self.copy_cell)
 
 
     def show_font_choice(self):
@@ -676,6 +683,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
     def setup(self):
         self.add_statusbar()
         self.bind_menu()
+        self.bind_menu(self.extra_ui, '_result_set')
 
         self.setup_result_set('result_set_1')
         self.setup_result_set('result_set_2')
