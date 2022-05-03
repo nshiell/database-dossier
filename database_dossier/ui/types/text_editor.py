@@ -57,7 +57,6 @@ class TextEditor(QObject):
     def __init__(self, parent, q_text, **kwargs):
         super().__init__(parent)
         self.options = kwargs
-
         self.q_text = q_text
         self.formatter = create_formatter(self.q_text.styleSheet())
         self.doc = TextDocument(parent)
@@ -69,7 +68,7 @@ class TextEditor(QObject):
         q_text.textChanged.connect(self.query_changed)
         q_text.setContextMenuPolicy(Qt.CustomContextMenu)
         q_text.customContextMenuRequested.connect(lambda:
-            self.context_menu.exec_(QCursor.pos())
+            kwargs['context_menu'].exec_(QCursor.pos())
         )
         q_text.installEventFilter(self)
 
@@ -120,7 +119,6 @@ class TextEditor(QObject):
                 False
             )
         ])
-
 
 
     @property
@@ -192,7 +190,6 @@ class TextEditor(QObject):
         self.set_stylesheet_property([('font-family', font_name, True)])
 
 
-
     def set_stylesheet_property(self, changes):
         stylesheet = self.q_text.styleSheet()
 
@@ -255,14 +252,8 @@ class TextEditor(QObject):
 
 
     def update_undo_redo_menus(self):
-        can_undo = self.doc.can_undo()
-        can_redo = self.doc.can_redo()
-
-        self.context_menu_actions['undo'].setEnabled(can_undo)
-        self.context_menu_actions['redo'].setEnabled(can_redo)
-
         if 'update_cb' in self.options:
-            self.options['update_cb'](can_undo, can_redo)
+            self.options['update_cb'](self.doc.can_undo(), self.doc.can_redo())
 
 
     def query_changed(self):
