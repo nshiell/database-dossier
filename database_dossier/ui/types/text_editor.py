@@ -243,11 +243,15 @@ class TextEditor(QObject):
 
 
     def undo(self):
-        self.doc.undo(self.q_text.textCursor())
+        cursor = self.q_text.textCursor()
+        self.doc.undo(cursor)
+        self.q_text.setTextCursor(cursor)
 
 
     def redo(self):
-        self.doc.redo(self.q_text.textCursor())
+        cursor = self.q_text.textCursor()
+        self.doc.redo(cursor)
+        self.q_text.setTextCursor(cursor)
 
 
     def update_undo_redo_menus(self):
