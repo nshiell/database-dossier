@@ -303,8 +303,8 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="create_connection"/>
-    <addaction name="quit"/>
+    <addaction name="action_create_connection"/>
+    <addaction name="action_quit"/>
    </widget>
    <widget class="QMenu" name="menu_Edit">
     <property name="title">
@@ -315,7 +315,7 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <addaction name="separator"/>
     <addaction name="action_cut"/>
     <addaction name="action_copy"/>
-    <addaction name="paste"/>
+    <addaction name="action_paste"/>
     <addaction name="separator"/>
     <addaction name="action_select_query"/>
     <addaction name="action_select_all"/>
@@ -324,16 +324,16 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <property name="title">
      <string>&amp;View</string>
     </property>
-    <addaction name="font"/>
-    <addaction name="text_size_increase"/>
-    <addaction name="text_size_descrease"/>
+    <addaction name="action_font"/>
+    <addaction name="action_text_size_increase"/>
+    <addaction name="action_text_size_decrease"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
    <addaction name="menu_View"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="create_connection">
+  <action name="action_create_connection">
    <property name="icon">
     <iconset theme="document-new">
      <normaloff>.</normaloff>.</iconset>
@@ -345,7 +345,7 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <string>Ctrl+N</string>
    </property>
   </action>
-  <action name="quit">
+  <action name="action_quit">
    <property name="icon">
     <iconset theme="application-exit">
      <normaloff>.</normaloff>.</iconset>
@@ -542,7 +542,7 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <string>Results</string>
    </property>
   </action>
-  <action name="font">
+  <action name="action_font">
    <property name="icon">
     <iconset theme="font">
      <normaloff>.</normaloff>.</iconset>
@@ -556,9 +556,10 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <string>Panel Log</string>
    </property>
   </action>
-  <action name="paste">
+  <action name="action_paste">
    <property name="icon">
-    <iconset theme="edit-paste"/>
+    <iconset theme="edit-paste">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Paste</string>
@@ -567,9 +568,10 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <string>Ctrl+V</string>
    </property>
   </action>
-  <action name="text_size_increase">
+  <action name="action_text_size_increase">
    <property name="icon">
-    <iconset theme="arrow-up"/>
+    <iconset theme="arrow-up">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Enlarge Text</string>
@@ -578,9 +580,10 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <string>Ctrl++</string>
    </property>
   </action>
-  <action name="text_size_descrease">
+  <action name="action_text_size_decrease">
    <property name="icon">
-    <iconset theme="arrow-down"/>
+    <iconset theme="arrow-down">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Shrink Text</string>
