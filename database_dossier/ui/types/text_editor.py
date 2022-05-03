@@ -62,7 +62,7 @@ class TextEditor(QObject):
         self.doc = TextDocument(parent)
         self.q_text.setDocument(self.doc)
         self.is_processing_highlighting = False
-
+        q_text.cursorPositionChanged.connect(self.cursor_moved)
         q_text.textChanged.connect(self.query_changed)
         q_text.setContextMenuPolicy(Qt.CustomContextMenu)
         q_text.customContextMenuRequested.connect(lambda:
@@ -226,6 +226,14 @@ class TextEditor(QObject):
     def update_undo_redo_menus(self):
         if 'update_cb' in self.options:
             self.options['update_cb'](self.doc.can_undo(), self.doc.can_redo())
+
+
+    def cursor_moved(self):
+        if 'text_cursor_moved_cb' in self.options:
+            cursor = self.q_text.textCursor()
+            position = cursor.position()
+            text = self.q_text.toPlainText()[:position]
+            self.options['text_cursor_moved_cb'](len(text.split("\n")))
 
 
     def query_changed(self):

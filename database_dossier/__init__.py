@@ -164,6 +164,21 @@ class DatabaseMixin:
         return connection_item
 
 
+    @property
+    def active_connection_name(self):
+        # can't use self.active_connection - recursion!
+        if self.state.active_connection_index is None:
+            return None
+
+        connection = self.connections[self.state.active_connection_index]
+
+        return '%s@%s:%s' % (
+            connection.user,
+            connection.server_host,
+            connection.server_port
+        )
+
+
     def add_connection(self, connection):
         self.connections.append(connection)
         self.previous_connection_index = self.state.active_connection_index
@@ -191,6 +206,8 @@ class DatabaseMixin:
     def active_connection(self):
         if self.state.active_connection_index is None:
             return None
+
+        self.f('connection_indicator').setText(self.active_connection_name)
 
         return self.connections[self.state.active_connection_index]
 
@@ -278,9 +295,13 @@ class DatabaseMixin:
 class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
     def __init__(self):
         super().__init__()
+
+        # The order of setups is important
         self.set_window_icon_from_artwork('database-dossier.png')
         self.load_xml('main_window.ui')
+        self.extra_ui_file_name = 'extra.ui'
         self.result_sets = {}
+        self.connection_dialog = ConnectionDialog(self)
         self.setup_text_editor()
         self.setup()
 
@@ -492,6 +513,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
             self.execute_active_connection_cursor(
                 "USE %s;" % repr(db_name)[1:-1]
             )
+        self.f('db_name').setText(db_name)
 
 
     def select_tree_object(self, model_index):
@@ -595,48 +617,68 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
     def setup_text_editor(self):
         def update_cb(can_undo, can_redo): 
-            self.get_menu_action('action_undo').setEnabled(can_undo)
-            self.get_menu_action('action_redo').setEnabled(can_redo)
+            self.action_undo.setEnabled(can_undo)
+            self.action_redo.setEnabled(can_redo)
+            self.extra_ui.action_undo_extra.setEnabled(can_undo)
+            self.extra_ui.action_redo_extra.setEnabled(can_redo)
+
+
+        def text_cursor_moved_cb(line_no):
+            self.f('line_no').setText('Line: ' + str(line_no))
 
         self.text_editor = TextEditor(self, self.f('text_edit_sql'),
-            update_cb=update_cb
+            update_cb=update_cb,
+            text_cursor_moved_cb=text_cursor_moved_cb,
+            context_menu=self.extra_ui.get_menu_action('editor')
         )
+
+        self.bind_menu(self.extra_ui)
+
+    def add_statusbar(self):
+        self.statusBar().addPermanentWidget(
+            self.extra_ui.frame_statusbar,
+            1
+        )
+
+
+    def bind_menu(self, window=None):
+        if window:
+            s = '_extra'
+        else:
+            s = ''
+            window = self
+
+        e = self.text_editor
+        window.menu('action_create_connection' + s, self.connection_dialog.show)
+        window.menu('action_undo' + s, self.text_editor.undo)
+        window.menu('action_redo' + s, self.text_editor.redo)
+        window.menu('action_cut' + s, self.text_editor.q_text.cut)
+        window.menu('action_copy' + s, self.text_editor.q_text.copy)
+        window.menu('action_paste' + s, self.text_editor.q_text.paste)
+        window.menu('action_select_query' + s, self.select_query)
+        window.menu('action_select_all' + s, self.text_editor.q_text.selectAll)
+        window.menu('action_text_size_increase' + s, e.font_point_size_increase)
+        window.menu('action_text_size_decrease' + s, e.font_point_size_decrease)
+        window.menu('action_font' + s, self.show_font_choice)
+        window.menu('action_quit' + s, qApp.quit)
+
+
+    def show_font_choice(self):
+        old_font = QFont(
+            self.text_editor.font_name,
+            pointSize=self.text_editor.font_point_size,
+            italic=self.text_editor.font_italic,
+            weight=75 if self.text_editor.font_bold else 50
+        )
+
+        new_font, valid = QFontDialog.getFont(QFont(old_font))
+        if valid:
+            self.text_editor.font = new_font
 
 
     def setup(self):
-        connection_dialog = ConnectionDialog(self)
-        self.menu('create_connection', connection_dialog.show)
-        self.menu('action_undo', self.text_editor.undo)
-        self.menu('action_redo', self.text_editor.redo)
-        self.menu('action_cut', self.text_editor.q_text.cut)
-        self.menu('action_copy', self.text_editor.q_text.copy)
-        self.menu('paste', self.text_editor.q_text.paste)
-        self.menu('action_select_query', self.select_query)
-        self.menu('action_select_all', self.text_editor.q_text.selectAll)
-
-        self.menu('text_size_increase',
-            self.text_editor.font_point_size_increase
-        )
-        self.menu('text_size_descrease',
-            self.text_editor.font_point_size_decrease
-        )
-
-
-        def font_choice():
-            old_font = QFont(
-                self.text_editor.font_name,
-                pointSize=self.text_editor.font_point_size,
-                italic=self.text_editor.font_italic,
-                weight=75 if self.text_editor.font_bold else 50
-            )
-
-            new_font, valid = QFontDialog.getFont(QFont(old_font))
-            if valid:
-                self.text_editor.font = new_font
-
-        self.menu('font', font_choice)
-
-        self.menu('quit', qApp.quit)
+        self.add_statusbar()
+        self.bind_menu()
 
         self.setup_result_set('result_set_1')
         self.setup_result_set('result_set_2')
