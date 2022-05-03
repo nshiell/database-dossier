@@ -640,11 +640,9 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
         self.bind_menu(self.extra_ui, '_extra')
 
+
     def add_statusbar(self):
-        self.statusBar().addPermanentWidget(
-            self.extra_ui.frame_statusbar,
-            1
-        )
+        self.statusBar().addPermanentWidget(self.extra_ui.frame_statusbar, 1)
 
 
     def bind_menu(self, window=None, s=''):
@@ -663,8 +661,13 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         window.menu('action_text_size_increase' + s, e.font_point_size_increase)
         window.menu('action_text_size_decrease' + s, e.font_point_size_decrease)
         window.menu('action_font' + s, self.show_font_choice)
-        window.menu('action_quit' + s, qApp.quit)
+        window.menu('action_quit' + s, self.quit)
         window.menu('action_copy_cell' + s, self.copy_cell)
+
+
+    def quit(self):
+        self.closeEvent(None)
+        qApp.quit()
 
 
     def show_font_choice(self):
