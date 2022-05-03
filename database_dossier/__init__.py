@@ -63,7 +63,7 @@ class ConnectionDialog(QDialog, WindowMixin):
         self.setFixedSize(QSize(300, 140))
         self.load_xml('connection.ui')
 
-        self.bind('test', 'clicked', lambda: main_win.test_connection(
+        self.test.clicked.connect(lambda: main_win.test_connection(
             **self.connection_dict
         ))
 
@@ -83,10 +83,10 @@ class ConnectionDialog(QDialog, WindowMixin):
     @property
     def connection_dict(self):
         return {
-            'host'     : self.f('host').text(),
-            'port'     : int(self.f('port').text()),
-            'user'     : self.f('user').text(),
-            'password' : self.f('password').text()
+            'host'     : self.host.text(),
+            'port'     : int(self.port.text()),
+            'user'     : self.user.text(),
+            'password' : self.password.text()
         }
 
 
@@ -199,7 +199,7 @@ class DatabaseMixin:
         for x in self.execute_active_connection_cursor('SHOW DATABASES;'):
             connection_item.appendRow(create_database_tree_item(x[0]))
 
-        self.f('tree_view_objects').expand(connection_item.index())
+        self.tree_view_objects.expand(connection_item.index())
 
 
     @property
@@ -207,6 +207,7 @@ class DatabaseMixin:
         if self.state.active_connection_index is None:
             return None
 
+        # Use the old method f() here
         self.f('connection_indicator').setText(self.active_connection_name)
 
         return self.connections[self.state.active_connection_index]
@@ -328,10 +329,9 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
 
     def log_line(self, sql):
-        text_edit_log = self.f('text_edit_log')
-        old_text = text_edit_log.toPlainText()
-        prefix = '\n' if old_text else ''
-        text_edit_log.setText(old_text + prefix + sql)
+        old_text = self.text_edit_log.toPlainText()
+        prefix = '\n' if self.text_edit_log.toPlainText() else ''
+        self.text_edit_log.setText(old_text + prefix + sql)
 
 
     def execute_active_connection_cursor(self, sql):
@@ -355,11 +355,10 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
             table_model.record_set = [[str(e)]]
             table_model.is_error = True
 
-        text_edit_log = self.f('text_edit_log')
-        prefix = '\n' if text_edit_log.toPlainText() else ''
+        prefix = '\n' if self.text_edit_log.toPlainText() else ''
 
-        text_edit_log.setText(
-            text_edit_log.toPlainText() + prefix + sql
+        self.text_edit_log.setText(
+            self.text_edit_log.toPlainText() + prefix + sql
         )
 
         table_model.update_emit()
@@ -369,14 +368,14 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         if new_index == 1:
             self.text_edit_log_document.setHtml(
             syntax_highlighter.highlight(
-                self.f('text_edit_log').toPlainText(),
+                self.text_edit_log.toPlainText(),
                 self.formatter_log
             )
         )
 
 
     def select_sql_fragment(self, start_point, end_point):
-        text_cursor = self.f('text_edit_sql').textCursor()
+        text_cursor = self.text_edit_sql.textCursor()
         text_cursor.selectedText()
         current_position = text_cursor.position()
         
@@ -399,7 +398,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
         text_cursor.selectedText()
         
-        self.f('text_edit_sql').setTextCursor(text_cursor)
+        self.text_edit_sql.setTextCursor(text_cursor)
 
 
     @property
@@ -411,7 +410,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
 
     def flash_tab(self, tab_index):
-        q_tab_bar = self.f('tab_result_sets').tabBar()
+        q_tab_bar = self.tab_result_sets.tabBar()
         old_color = q_tab_bar.tabTextColor(tab_index)
 
         new_color = QColor('#FFFF66') if self.is_dark else QColor('#444400')
@@ -433,9 +432,8 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
 
     def select_query(self):
-        text_edit_sql = self.f('text_edit_sql')
-        doc = text_edit_sql.document()
-        text_cursor = text_edit_sql.textCursor()
+        doc = self.text_edit_sql.document()
+        text_cursor = self.text_edit_sql.textCursor()
 
         start_end_points = doc.get_sql_fragment_start_end_points(text_cursor)
         if start_end_points:
@@ -443,9 +441,8 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
 
     def execute(self, result_set_index):
-        text_edit_sql = self.f('text_edit_sql')
-        doc = text_edit_sql.document()
-        text_cursor = text_edit_sql.textCursor()
+        doc = self.text_edit_sql.document()
+        text_cursor = self.text_edit_sql.textCursor()
 
         selected_sql = text_cursor.selectedText()
 
@@ -459,7 +456,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
             if start_end_points is None:
                 return None
 
-            sql_fragment = text_edit_sql.toPlainText()[
+            sql_fragment = self.text_edit_sql.toPlainText()[
                 start_end_points[0]:start_end_points[1]
             ].strip()
 
@@ -475,8 +472,8 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
 
     def show_record_set(self, tab_index):
-        self.f('tab_result_sets').setCurrentIndex(tab_index)
-        self.f('text_edit_sql').setFocus()
+        self.tab_result_sets.setCurrentIndex(tab_index)
+        self.text_edit_sql.setFocus()
         self.flash_tab(tab_index)
 
 
@@ -541,7 +538,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
             for x in self.execute_active_connection_cursor('SHOW TABLES;'):
                 database_item.appendRow(create_table_tree_item(x[0]))
 
-            self.f('tree_view_objects').expand(model_index)
+            self.tree_view_objects.expand(model_index)
         elif level == 'table':
             self.change_database_if_needed(model_index.parent().data())
             cursor = self.active_connection.cursor()
@@ -569,7 +566,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
             )
 
 
-            self.f('tab_result_sets').setTabText(0, 'Data: ' + table_name)
+            self.tab_result_sets.setTabText(0, 'Data: ' + table_name)
         else: # connection
             connection_item = self.tree_model.itemFromIndex(model_index)
 
@@ -626,7 +623,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         def text_cursor_moved_cb(line_no):
             self.f('line_no').setText('Line: ' + str(line_no))
 
-        self.text_editor = TextEditor(self, self.f('text_edit_sql'),
+        self.text_editor = TextEditor(self, self.text_edit_sql,
             update_cb=update_cb,
             text_cursor_moved_cb=text_cursor_moved_cb,
             context_menu=self.extra_ui.get_menu_action('editor')
@@ -686,30 +683,31 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         self.setup_result_set('data')
         self.setup_result_set('schema')
 
-        tree_view_objects = self.f('tree_view_objects')
         # Used in other classes!
         self.tree_model = QStandardItemModel()
-        tree_view_objects.setModel(self.tree_model)
+        self.tree_view_objects.setModel(self.tree_model)
+        self.tree_view_objects.clicked.connect(self.select_tree_object)
 
-        self.bind(tree_view_objects, 'clicked', self.select_tree_object)
-
-        text_edit_log = self.f('text_edit_log')
-        self.formatter_log = syntax_highlighter.create_formatter(text_edit_log.styleSheet())
+        self.formatter_log = syntax_highlighter.create_formatter(
+            self.text_edit_log.styleSheet()
+        )
         self.text_edit_log_document = QTextDocument(self)
-        self.text_edit_log_document.setDefaultStyleSheet(syntax_highlighter.style())
-        text_edit_log.setDocument(self.text_edit_log_document)
+        self.text_edit_log_document.setDefaultStyleSheet(
+            syntax_highlighter.style()
+        )
+        self.text_edit_log.setDocument(self.text_edit_log_document)
 
-        self.bind('execute_1', 'clicked', lambda: self.execute(0))
-        self.bind('execute_2', 'clicked', lambda: self.execute(1))
-        self.bind('execute_3', 'clicked', lambda: self.execute(2))
-        self.bind('table_query', 'currentChanged', self.highlight_log)
+        self.execute_1.clicked.connect(lambda: self.execute(0))
+        self.execute_2.clicked.connect(lambda: self.execute(1))
+        self.execute_3.clicked.connect(lambda: self.execute(2))
+        self.table_query.currentChanged.connect(self.highlight_log)
 
         # Must be last
         self.setup_state()
 
 
     def closeEvent(self, event):
-        sql = self.f('text_edit_sql').toPlainText()
+        sql = self.text_edit_sql.toPlainText()
         self.state.editor_sql = sql
         
         save_state(self.state)
