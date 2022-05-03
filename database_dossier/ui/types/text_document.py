@@ -29,17 +29,18 @@ class UndoRedoerWithCursor(list):
         self[-1] = {'text': text, 'position': position}
 
 
-    def should_add(self, text):
+    def should_add(self, text, cursor_position):
         if len(self) == 0:
             return True
 
         last_text = self[-1]['text']
-
         if not self.starting_point_set and (last_text != text):
             self.starting_point_set = True
             return True
 
-        return len(last_text) and last_text[-1] in ' ();\n\t\'"'
+        return text and text[cursor_position - 1] in ' ();\n\t\'"'
+
+        #return len(last_text) and last_text[-1] in ' ();\n\t\'"'
 
 
     def truncate_when_updating(self):
@@ -52,7 +53,7 @@ class UndoRedoerWithCursor(list):
     def update_state(self, text, cursor_position):
         self.truncate_when_updating()
 
-        if self.should_add(text):
+        if self.should_add(text, cursor_position):
             self.add(text, cursor_position)
         else:
             self.update(text, cursor_position)
@@ -126,6 +127,7 @@ class TextDocument(QTextDocument):
             self.ignore_state_update = False
             if cursor:
                 cursor.setPosition(self.undo_redoer.current['position'])
+
 
     def get_sql_fragment_start_end_points(self, cursor):
         """
