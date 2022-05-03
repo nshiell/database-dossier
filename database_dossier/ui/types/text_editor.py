@@ -63,8 +63,6 @@ class TextEditor(QObject):
         self.q_text.setDocument(self.doc)
         self.is_processing_highlighting = False
 
-        self.context_menu_actions = {}
-        self.setup_menu()
         q_text.textChanged.connect(self.query_changed)
         q_text.setContextMenuPolicy(Qt.CustomContextMenu)
         q_text.customContextMenuRequested.connect(lambda:
@@ -211,32 +209,6 @@ class TextEditor(QObject):
         self.q_text.setStyleSheet(stylesheet)
         self.formatter = create_formatter(stylesheet)
         self.query_changed()
-
-
-
-    def setup_menu(self):
-        self.context_menu = QMenu()
-        action = QAction(
-            QIcon.fromTheme("edit-undo"),
-            "&Undo",
-            self.q_text
-        )
-
-        action.setShortcut('Ctrl+Z')
-        action.triggered.connect(self.undo)
-        self.context_menu_actions['undo'] = action
-        self.context_menu.addAction(action)
-
-        action = QAction(
-            QIcon.fromTheme("edit-redo"),
-            "&Redo",
-            self.q_text
-        )
-
-        action.setShortcut('Ctrl+Y')
-        action.triggered.connect(self.redo)
-        self.context_menu_actions['redo'] = action
-        self.context_menu.addAction(action)
 
 
     def undo(self):
