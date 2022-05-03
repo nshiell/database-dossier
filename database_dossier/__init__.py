@@ -331,9 +331,9 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
 
         table_view = self.f(table_views[self.tab_result_sets.currentIndex()])
 
-        QApplication.instance().clipboard().setText(
+        QApplication.instance().clipboard().setText(str(
             table_view.currentIndex().data()
-        )
+        ))
         
 
 
