@@ -55,7 +55,9 @@ class WindowMixin:
 
 
     def menu(self, name, callback):
-        return self.get_menu_action(name).triggered.connect(callback)
+        action = getattr(self, name, None)
+        if action:
+            return action.triggered.connect(callback)
 
 
     def load_xml(self, xml_file):
