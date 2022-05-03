@@ -9,6 +9,8 @@ class WindowMixin:
     def __init__(self):
         self.xml_root_ = None
         self._artwork_dir = None
+        self._extra_ui = None
+        self.extra_ui_file_name = None
 
 
     def f(self, name):
@@ -44,6 +46,9 @@ class WindowMixin:
 
             submenu = action.menu()
             if submenu:
+                if name == submenu.objectName():
+                    return submenu
+
                 action_found = self.get_menu_action(name, submenu)
                 if action_found:
                     return action_found
@@ -118,3 +123,14 @@ class WindowMixin:
 
     def set_window_icon_from_artwork(self, file_name):
         self.setWindowIcon(QIcon(os.path.join(self.artwork_dir, file_name)))
+
+
+    @property
+    def extra_ui(self):
+        if (self._extra_ui is None):
+            class Extra(QMainWindow, WindowMixin): pass
+            extra = Extra(self)
+            extra.load_xml(self.extra_ui_file_name)
+            self._extra_ui = extra
+
+        return self._extra_ui
