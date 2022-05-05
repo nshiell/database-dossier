@@ -56,6 +56,56 @@ def create_table_tree_item(name):
     return item
 
 
+class HelpDialog(QDialog, WindowMixin):
+    def __init__(self, main_win):
+        super().__init__(main_win)
+        self._doc_dir = None
+        self.setup = False
+
+    def show(self):
+        """
+        Setting up the URL is expensive
+        do it lazily here - rather than on __init__
+        """
+        if not self.setup:
+            self.resize(QSize(600, 300))
+            self.load_xml('help.ui')
+            self.web_view.setUrl(QUrl('file://' + self.doc_dir + '/help.html'))
+            self.web_view.loadFinished.connect(self.load_finished)
+            self.setup = True
+
+        super().show()
+
+
+    def load_finished(self, is_ok):
+        print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
+        self.web_view.page().mainFrame().addToJavaScriptWindowObject('app', self)
+
+
+    @pyqtSlot(str)
+    def response(self, value):
+        print(value)
+
+
+    @property
+    def doc_dir(self):
+        if not self._doc_dir:
+            path = os.path.realpath(__file__)
+            path = os.path.dirname(path) # parent
+            path = os.path.dirname(path) # parent
+            self._doc_dir = os.path.join(path, 'doc')
+
+        return self._doc_dir
+
+
+class AboutDialog(QDialog, WindowMixin):
+    def __init__(self, main_win):
+        super().__init__(main_win)
+
+        self.setFixedSize(QSize(600, 300))
+        self.load_xml('about.ui')
+
+
 class ConnectionDialog(QDialog, WindowMixin):
     def __init__(self, main_win):
         super().__init__(main_win)
@@ -172,6 +222,9 @@ class DatabaseMixin:
 
         connection = self.connections[self.state.active_connection_index]
 
+        if isinstance(connection, dict):
+            return None
+
         return '%s@%s:%s' % (
             connection.user,
             connection.server_host,
@@ -207,10 +260,15 @@ class DatabaseMixin:
         if self.state.active_connection_index is None:
             return None
 
+
+        connection = self.connections[self.state.active_connection_index]
+        if isinstance(connection, dict):
+            return None
+
         # Use the old method f() here
         self.f('connection_indicator').setText(self.active_connection_name)
 
-        return self.connections[self.state.active_connection_index]
+        return connection
 
 
     def create_db_connection(self, **kwargs):
@@ -303,6 +361,8 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         self.extra_ui_file_name = 'extra.ui'
         self.result_sets = {}
         self.connection_dialog = ConnectionDialog(self)
+        self.about_dialog = AboutDialog(self)
+        self.help_dialog = HelpDialog(self)
         self.setup_text_editor()
         self.setup()
 
@@ -586,6 +646,7 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
                     connection_item.removeRow(row_num)
 
             self.list_databases(connection_item)
+
 
     def setup_state(self):
         self.state = load_state()
