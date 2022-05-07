@@ -70,7 +70,10 @@ class State:
                 if valid(connection, 'host', str, 0, 200) else None,
 
             'port': connection['port']
-                if valid(connection, 'port', int, 0, 10000) else None
+                if valid(connection, 'port', int, 0, 10000) else None,
+
+            'database': connection['database']
+                if valid(connection, 'database', str, 0, 200) else None
         })
 
 
@@ -107,10 +110,20 @@ class State:
                 self.editor_sql = open(self.sql_path, "r").read()
 
 
+    def connections_for_persist(self):
+        connection_options_allowed = ['host', 'password', 'user', 'port']
+        connections = []
+        for connection in self.connections:
+            connections.append(
+                {k: v for k, v in connection.items() if k in connection_options_allowed}
+            )
+
+        return connections
+
     def to_dict(self):
         return {
             "version": '0.0.1',
-            "connections": self.connections,
+            "connections": slelf.connections_for_persist(),
             "sql_path": self.sql_path,
             "active_connection_index": self.active_connection_index
         }
