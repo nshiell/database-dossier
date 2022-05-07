@@ -1,4 +1,3 @@
-import mysql.connector
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
 from PyQt5.QtGui import *
@@ -6,54 +5,7 @@ from PyQt5.QtCore import *
 from .ui import *
 from . import syntax_highlighter
 from .store import *
-
-
-
-def create_connection_tree_item_broken(name):
-    font = QFont('Open Sans', 12)
-    font.setBold(True)
-    font.setItalic(True)
-
-    item = QStandardItem()
-    item.setEditable(False)
-    item.setFont(font)
-    item.setText(name)
-    item.setBackground(QColor('black'))
-    item.setForeground(QColor('red'))
-
-    return item
-
-
-def create_connection_tree_item(name):
-    font = QFont('Open Sans', 12)
-    font.setBold(True)
-
-    item = QStandardItem()
-    item.setEditable(False)
-    item.setFont(font)
-    item.setText(name)
-
-    return item
-
-
-def create_database_tree_item(name):
-    font = QFont()
-    font.setBold(True)
-
-    item = QStandardItem()
-    item.setEditable(False)
-    item.setFont(font)
-    item.setText(name)
-
-    return item
-
-
-def create_table_tree_item(name):
-    item = QStandardItem()
-    item.setEditable(False)
-    item.setText(name)
-
-    return item
+from .database import ConnectionList, DatabaseException
 
 
 class HelpDialog(QDialog, WindowMixin):
@@ -140,218 +92,7 @@ class ConnectionDialog(QDialog, WindowMixin):
         }
 
 
-class DatabaseMixin:
-    def __init__(self):
-        super().__init__()
-        self.connections = []
-        self.previous_connection_index = None
-        self.db_names_selected = {}
-
-
-    def execute_create_cursor(self, sql):
-        if not self.active_connection:
-            raise mysql.connector.errors.Error('No connection')
-
-        cursor = self.active_connection.cursor()
-        cursor.execute(sql)
-
-        return cursor
-
-
-    def update_activation(self):
-        self.disable_previous_connection()
-        self.enable_active_connection()
-
-
-    def disable_previous_connection(self):
-        needs_disabling = (
-            self.previous_connection_index is not None and
-            self.previous_connection_index != self.state.active_connection_index
-        )
-
-        if needs_disabling:
-            con_item = self.tree_model.item(self.previous_connection_index)
-            con_item.setEnabled(False)
-
-            i = 0
-            while con_item.child(i):
-                con_item.child(i).setEnabled(False)
-                j = 0
-                while con_item.child(i).child(j):
-                    con_item.child(i).child(j).setEnabled(False)
-                    j+= 1
-                i+= 1
-
-
-    def enable_active_connection(self):
-        if self.previous_connection_index != self.state.active_connection_index:
-            con_item = self.tree_model.item(self.state.active_connection_index)
-            if con_item:
-                con_item.setEnabled(True)
-
-                i = 0
-                while con_item.child(i):
-                    con_item.child(i).setEnabled(True)
-                    j = 0
-                    while con_item.child(i).child(j):
-                        con_item.child(i).child(j).setEnabled(True)
-                        j+= 1
-                    i+= 1
-
-
-    def add_broken_connection(self, **connection):
-        self.connections.append(connection)
-        name = '%s@%s:%s' % (
-            connection['user'],
-            connection['host'],
-            connection['port']
-        )
-
-        root_node = self.tree_model.invisibleRootItem()
-
-        connection_item = create_connection_tree_item_broken(name)
-        root_node.appendRow(connection_item)
-        return connection_item
-
-
-    @property
-    def active_connection_name(self):
-        # can't use self.active_connection - recursion!
-        if self.state.active_connection_index is None:
-            return None
-
-        connection = self.connections[self.state.active_connection_index]
-
-        if isinstance(connection, dict):
-            return None
-
-        return '%s@%s:%s' % (
-            connection.user,
-            connection.server_host,
-            connection.server_port
-        )
-
-
-    def add_connection(self, connection):
-        self.connections.append(connection)
-        self.previous_connection_index = self.state.active_connection_index
-
-        name = '%s@%s:%s' % (
-            connection.user,
-            connection.server_host,
-            connection.server_port
-        )
-
-        root_node = self.tree_model.invisibleRootItem()
-
-        connection_item = create_connection_tree_item(name)
-        root_node.appendRow(connection_item)
-        return connection_item
-
-    def list_databases(self, connection_item):
-        for x in self.execute_active_connection_cursor('SHOW DATABASES;'):
-            connection_item.appendRow(create_database_tree_item(x[0]))
-
-        self.tree_view_objects.expand(connection_item.index())
-
-
-    @property
-    def active_connection(self):
-        if self.state.active_connection_index is None:
-            return None
-
-
-        connection = self.connections[self.state.active_connection_index]
-        if isinstance(connection, dict):
-            return None
-
-        # Use the old method f() here
-        self.f('connection_indicator').setText(self.active_connection_name)
-
-        return connection
-
-
-    def create_db_connection(self, **kwargs):
-        kwargs['autocommit'] = True
-        kwargs['auth_plugin'] = 'mysql_native_password'
-
-        return mysql.connector.connect(**kwargs)
-
-
-    def show_connection_error(self, text):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("Error")
-        msg.setInformativeText(text)
-        msg.setWindowTitle("Error")
-        msg.exec_()
-
-
-    def show_connection_ok(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Ok")
-        msg.setInformativeText('Can connect')
-        msg.setWindowTitle("OK")
-        msg.exec_()
-
-
-    def duplicate_connection_dialog(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("Ok")
-        msg.setInformativeText('This connection has already been established')
-        msg.setWindowTitle("OK")
-        msg.exec_()
-
-
-    def is_connection_already_defined(self, **kwargs):
-        if self.tree_model.item(0):
-            name = '%s@%s:%s' % (
-            kwargs['user'],
-            kwargs['host'],
-            kwargs['port']
-        )
-        i = 0
-        while self.tree_model.item(i):
-            if name == self.tree_model.item(i).text():
-                return True
-            i+= 1
-
-        return False
-
-    def add_connection_and_activate(self, **kwargs):
-        if self.is_connection_already_defined(**kwargs):
-            self.duplicate_connection_dialog()
-            return False
- 
-        try:
-            connection_item = self.add_connection(
-                self.create_db_connection(**kwargs)
-            )
-            self.list_databases(connection_item)
-        except mysql.connector.errors.Error as e:
-            self.show_connection_error(str(e))
-            return False
-
-        self.state.connections.append(kwargs)
-        self.state.active_connection_index = len(self.connections) - 1
-        self.update_activation()
-
-        return True
-
-
-    def test_connection(self, **kwargs):
-        try:
-            self.create_db_connection(**kwargs)
-        except mysql.connector.errors.Error as e:
-            self.show_connection_error(str(e))
-            return None
-
-        self.show_connection_ok()
-
-
-class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
+class MainWindow(QMainWindow, WindowMixin):
     def __init__(self):
         super().__init__()
 
@@ -394,7 +135,6 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         QApplication.instance().clipboard().setText(str(
             table_view.currentIndex().data()
         ))
-        
 
 
     def log_line(self, sql):
@@ -403,23 +143,17 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         self.text_edit_log.setText(old_text + prefix + sql)
 
 
-    def execute_active_connection_cursor(self, sql):
-        cursor = self.execute_create_cursor(sql)
-        self.log_line(sql)
-        return cursor
-
-
     def execute_update_table_model(self, table_model, sql):
         table_model.is_error = False
         table_model.headers = ['Result']
         table_model.record_set = [['OK']]
 
         try:
-            cursor = self.execute_active_connection_cursor(sql)
+            cursor = self.connections.execute_active_connection_cursor(sql)
             if cursor.description:
                 table_model.headers = [i[0] for i in cursor.description]
                 table_model.record_set = cursor.fetchall()
-        except mysql.connector.errors.Error as e:
+        except DatabaseException as e:
             table_model.headers = ['Error']
             table_model.record_set = [[str(e)]]
             table_model.is_error = True
@@ -546,16 +280,6 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         self.flash_tab(tab_index)
 
 
-    def tree_item_type_from_index(self, model_index):
-        if not model_index.parent().isValid():
-            return 'connection'
-
-        if model_index.parent().parent().isValid():
-            return 'table'
-
-        return 'database'
-
-
     def tree_item_connection_index(self, model_index):
         level = self.tree_item_type_from_index(model_index)
 
@@ -568,118 +292,44 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         return model_index.row() # connection
 
 
-    def change_database_if_needed(self, db_name):        
-        change_needed = (
-            db_name not in self.db_names_selected or
-            self.db_names_selected[self.state.active_connection_index] != db_name
+    def table_changed(self, table_name):
+        table_name_clean = repr(table_name)[1:-1]
+
+        self.execute_update_table_model(
+            self.result_sets['schema'],
+            "DESCRIBE %s" % table_name_clean
         )
 
-        if change_needed:
-            self.db_names_selected[self.state.active_connection_index] = db_name
-            self.execute_active_connection_cursor(
-                "USE %s;" % repr(db_name)[1:-1]
-            )
-        self.f('db_name').setText(db_name)
+        self.execute_update_table_model(
+            self.result_sets['data'],
+            "SELECT * FROM %s LIMIT %d" % (table_name_clean, 1000)
+        )
 
-
-    def select_tree_object(self, model_index):
-        level = self.tree_item_type_from_index(model_index)
-        new_connection_index = self.tree_item_connection_index(model_index)
-
-        if isinstance(self.connections[new_connection_index], dict):
-            return None
-
-        if new_connection_index != self.state.active_connection_index:
-            self.previous_connection_index = self.state.active_connection_index
-            self.state.active_connection_index = new_connection_index
-            self.update_activation()
-
-        if level == 'database':
-            database_item = self.tree_model.itemFromIndex(model_index)
-            self.change_database_if_needed(model_index.data())
-
-            children_count = database_item.rowCount()
-
-            if children_count:
-                for row_num in reversed(range(children_count)):
-                    database_item.removeRow(row_num)
-
-            for x in self.execute_active_connection_cursor('SHOW TABLES;'):
-                database_item.appendRow(create_table_tree_item(x[0]))
-
-            self.tree_view_objects.expand(model_index)
-        elif level == 'table':
-            self.change_database_if_needed(model_index.parent().data())
-            cursor = self.active_connection.cursor()
-
-            table_name = model_index.data()
-            table_name_clean = repr(table_name)[1:-1]
-
-            self.execute_update_table_model(
-                self.result_sets['schema'],
-                "DESCRIBE %s" % table_name_clean
-            )
-
-            self.execute_update_table_model(
-                self.result_sets['data'],
-                "SELECT * FROM %s LIMIT %d" % (table_name_clean, 1000)
-            )
-
-
-            name = '%s@%s:%s::%s.%s' % (
-                self.active_connection.user,
-                self.active_connection.server_host,
-                self.active_connection.server_port,
-                self.db_names_selected[self.state.active_connection_index],
-                table_name
-            )
-
-
-            self.tab_result_sets.setTabText(0, 'Data: ' + table_name)
-        else: # connection
-            connection_item = self.tree_model.itemFromIndex(model_index)
-
-            children_count = connection_item.rowCount()
-
-            if children_count:
-                for row_num in reversed(range(children_count)):
-                    connection_item.removeRow(row_num)
-
-            self.list_databases(connection_item)
+        self.tab_result_sets.setTabText(0, 'Data: ' + table_name)
 
 
     def setup_state(self):
         self.state = load_state()
-        self.text_editor.plain_text = self.state.editor_sql
+        self.connections = ConnectionList(
+            self.state.connections,
+            self.tree_view_objects,
+            self.state.active_connection_index
+        )
 
-        errors = []
-        for index, connection_data in enumerate(self.state.connections):
-            if self.is_connection_already_defined(**connection_data):
-                continue
+        self.connections.bind('table_changed', self.table_changed)
+        self.connections.bind('log_line', self.log_line)
+        self.connections.bind('connection_changed', self.f('connection_indicator').setText)
+        self.connections.bind('database_changed', self.f('db_name').setText)
 
-            try:
-                connection_item = self.add_connection(
-                    self.create_db_connection(**connection_data)
-                )
-
-                if index == self.state.active_connection_index:
-                    self.list_databases(connection_item)
-                else:
-                    connection_item.setEnabled(False)
-
-            except mysql.connector.errors.Error as e:
-                self.add_broken_connection(**connection_data).setEnabled(False)
-                errors.append([str(e)])
-
+        errors = self.connections.update_tree_and_get_errors()
         if errors:
             self.result_sets['data'].headers = ['Error']
             self.result_sets['data'].record_set = errors
             self.result_sets['data'].is_error = True
             self.result_sets['data'].update_emit()
             self.show_record_set(0)
-
-        self.previous_connection_index = None
-        self.update_activation()
+        
+        self.text_editor.plain_text = self.state.editor_sql
 
 
     def setup_text_editor(self):
@@ -754,11 +404,6 @@ class MainWindow(DatabaseMixin, QMainWindow, WindowMixin):
         self.setup_result_set('result_set_3')
         self.setup_result_set('data')
         self.setup_result_set('schema')
-
-        # Used in other classes!
-        self.tree_model = QStandardItemModel()
-        self.tree_view_objects.setModel(self.tree_model)
-        self.tree_view_objects.clicked.connect(self.select_tree_object)
 
         self.formatter_log = syntax_highlighter.create_formatter(
             self.text_edit_log.styleSheet()
