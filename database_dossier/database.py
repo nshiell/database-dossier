@@ -79,6 +79,13 @@ def list_databases(lst, connection_item):
     lst.q_tree.expand(connection_item.index())
 
 
+def list_tables(lst, database_item):
+    for x in lst.execute_active_connection_cursor('SHOW TABLES;'):
+        database_item.appendRow(TableTreeItem(name=x[0]))
+
+    lst.q_tree.expand(database_item.index())
+
+
 def escape(text):
     return json.dumps(text)[1:-1]
 
@@ -96,11 +103,23 @@ def update_tree_state(lst):
     list_databases(lst, connection_item)
 
     database_name = lst.active_connection['database']
-    if lst.active_connection and database_name:
-        change_database(lst, database_name)
-        for i in range(connection_item.rowCount()):
-            if connection_item.child(i).text() == database_name:
-                connection_item.child(i).status = TreeItem.status_selected
+    if database_name:
+        if lst.active_connection and database_name:
+            change_database(lst, database_name)
+            for i in range(connection_item.rowCount()):
+                database_item = connection_item.child(i)
+                if database_item.text() == database_name:
+                    database_item.status = TreeItem.status_selected
+                    list_tables(lst, database_item)
+
+                    table_name = lst.active_connection['table']
+                    if table_name:
+                        for j in range(database_item.rowCount()):
+                            table_item = database_item.child(j)
+                            if table_item.text() == table_name:
+                                table_item.status = TreeItem.status_selected
+
+                    return None
 
 
 def name_from_connection_data(data):
