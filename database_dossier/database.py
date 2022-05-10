@@ -23,6 +23,11 @@ class ConnectionList(list):
         self._active_connection_index = None
 
 
+    def trigger(self, event_name, *args):
+        if event_name in self.event_bindings:
+            self.event_bindings[event_name](args)
+
+
     @property
     def active_connection(self):
         return self[self._active_connection_index]
@@ -42,7 +47,10 @@ class ConnectionList(list):
         if errors and 'errors' in self.event_bindings:
             self.event_bindings['errors'](errors)
 
-        update_tree_state(self)
+        try:
+            update_tree_state(self)
+        except QueryDatabaseException as e:
+            self.trigger('errors', [str(e)])
 
 
     def tree_click(self, model_index):
