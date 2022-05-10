@@ -46,7 +46,7 @@ def valid(container, key, data_type, min_size=None, max_size=None):
         if min_size is not None and len_string < min_size:
             return False
     elif data_type == int:
-        if  max_size is not None and  container[key] > max_size:
+        if max_size is not None and container[key] > max_size:
             return False
 
         if min_size is not None and container[key] < min_size:
@@ -70,7 +70,7 @@ class State:
                 if valid(connection, 'host', str, 0, 200) else None,
 
             'port': connection['port']
-                if valid(connection, 'port', int, 0, 10000) else None,
+                if valid(connection, 'port', int, 0, 10000) else 3306,
 
             'database': connection['database']
                 if valid(connection, 'database', str, 0, 200) else None
@@ -111,7 +111,7 @@ class State:
 
 
     def connections_for_persist(self):
-        connection_options_allowed = ['host', 'password', 'user', 'port']
+        connection_options_allowed = ['host', 'password', 'user', 'port', 'database']
         connections = []
         for connection in self.connections:
             connections.append(
@@ -123,7 +123,7 @@ class State:
     def to_dict(self):
         return {
             "version": '0.0.1',
-            "connections": slelf.connections_for_persist(),
+            "connections": self.connections_for_persist(),
             "sql_path": self.sql_path,
             "active_connection_index": self.active_connection_index
         }
