@@ -22,6 +22,12 @@ class ConnectionList(list):
         self.event_bindings = {}
         self._active_connection_index = None
 
+
+    @property
+    def active_connection(self):
+        return self[self._active_connection_index]
+
+
     @property
     def active_connection_index(self):
         return self._active_connection_index
@@ -36,6 +42,8 @@ class ConnectionList(list):
         if errors and 'errors' in self.event_bindings:
             self.event_bindings['errors'](errors)
 
+        update_tree_state(self)
+
 
     def tree_click(self, model_index):
         level = tree_item_type_from_index(model_index)
@@ -44,6 +52,55 @@ class ConnectionList(list):
 
     def bind(self, event_name, event_callback):
         self.event_bindings[event_name] = event_callback
+
+
+    def execute_active_connection_cursor(self, sql):
+        """
+        if not self.active_connection:
+            raise QueryDatabaseException('No connection')
+        """
+
+        if self.active_connection['broken']: # test!
+            raise QueryDatabaseException('No connection')
+
+        cursor = self.active_connection['db_connection'].cursor()
+        try:
+            cursor.execute(sql)
+        except mysql.connector.errors.Error as e:
+            raise QueryDatabaseException(str(e))
+
+        return cursor
+
+
+def list_databases(lst, connection_item):
+    for x in lst.execute_active_connection_cursor('SHOW DATABASES;'):
+        connection_item.appendRow(DatabaseTreeItem(name=x[0]))
+
+    lst.q_tree.expand(connection_item.index())
+
+
+def escape(text):
+    return json.dumps(text)[1:-1]
+
+
+def change_database(lst, db_name):
+    lst.execute_active_connection_cursor('USE %s;' % escape(db_name))
+
+
+def update_tree_state(lst):
+    if lst._active_connection_index is None:
+        return None
+
+    connection_item = lst.model.invisibleRootItem().child(lst._active_connection_index)
+    connection_item.status = TreeItem.status_selected
+    list_databases(lst, connection_item)
+
+    database_name = lst.active_connection['database']
+    if lst.active_connection and database_name:
+        change_database(lst, database_name)
+        for i in range(connection_item.rowCount()):
+            if connection_item.child(i).text() == database_name:
+                connection_item.child(i).status = TreeItem.status_selected
 
 
 def name_from_connection_data(data):
