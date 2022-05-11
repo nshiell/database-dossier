@@ -73,7 +73,10 @@ class State:
                 if valid(connection, 'port', int, 0, 10000) else 3306,
 
             'database': connection['database']
-                if valid(connection, 'database', str, 0, 200) else None
+                if valid(connection, 'database', str, 0, 200) else None,
+
+            'table': connection['table']
+                if valid(connection, 'table', str, 0, 200) else None
         })
 
 
@@ -111,7 +114,7 @@ class State:
 
 
     def connections_for_persist(self):
-        connection_options_allowed = ['host', 'password', 'user', 'port', 'database']
+        connection_options_allowed = ['host', 'password', 'user', 'port', 'database', 'table']
         connections = []
         for connection in self.connections:
             connections.append(
