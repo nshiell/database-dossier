@@ -23,7 +23,7 @@ class ConnectionList(list):
         self._active_connection_index = None
 
 
-    def trigger(self, event_name, *args):
+    def trigger(self, event_name, args):
         if event_name in self.event_bindings:
             self.event_bindings[event_name](args)
 
@@ -44,18 +44,19 @@ class ConnectionList(list):
 
         errors = []
         create_connection_items(self.model.invisibleRootItem(), self, errors)
-        if errors and 'errors' in self.event_bindings:
-            self.event_bindings['errors'](errors)
+        if errors:
+            self.trigger('errors', errors)
 
         try:
             update_tree_state(self)
         except QueryDatabaseException as e:
-            self.trigger('errors', [str(e)])
+            self.trigger('errors', ([str(e)],))
 
 
     def tree_click(self, model_index):
-        level = tree_item_type_from_index(model_index)
-        print('asdf')
+        connection_item = thingy
+        database_item = thingy
+        table_item = thingy
 
 
     def bind(self, event_name, event_callback):
@@ -126,6 +127,7 @@ def update_tree_state(lst):
                             table_item = database_item.child(j)
                             if table_item.text() == table_name:
                                 table_item.status = TreeItem.status_selected
+                                lst.trigger('table_changed', table_name)
 
                     return None
 
