@@ -216,7 +216,7 @@ class MainWindow(QMainWindow, WindowMixin):
         q_tab_bar = self.tab_result_sets.tabBar()
         old_color = q_tab_bar.tabTextColor(tab_index)
 
-        new_color = QColor('#FFFF66') if self.is_dark else QColor('#444400')
+        new_color = QColor('black') if self.is_dark else QColor('white')
         times = 0
 
         def change():
@@ -308,26 +308,39 @@ class MainWindow(QMainWindow, WindowMixin):
         self.tab_result_sets.setTabText(0, 'Data: ' + table_name)
 
 
-    def setup_state(self):
-        self.state = load_state()
+    def error_handler(self, errors):
+        self.result_sets['data'].headers = ['Error']
+        self.result_sets['data'].record_set = errors
+        self.result_sets['data'].is_error = True
+        self.result_sets['data'].update_emit()
+        self.show_record_set(0)
+
+
+    def setup_connections(self):
         self.connections = ConnectionList(
             self.state.connections,
-            self.tree_view_objects,
-            self.state.active_connection_index
+            self.tree_view_objects
         )
 
         self.connections.bind('table_changed', self.table_changed)
         self.connections.bind('log_line', self.log_line)
         self.connections.bind('connection_changed', self.f('connection_indicator').setText)
         self.connections.bind('database_changed', self.f('db_name').setText)
+        self.connections.bind('errors', self.error_handler)
 
-        errors = self.connections.update_tree_and_get_errors()
-        if errors:
-            self.result_sets['data'].headers = ['Error']
-            self.result_sets['data'].record_set = errors
-            self.result_sets['data'].is_error = True
-            self.result_sets['data'].update_emit()
-            self.show_record_set(0)
+        self.connections.active_connection_index = self.state.active_connection_index
+
+        self.tree_view_objects.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view_objects.customContextMenuRequested.connect(lambda:
+            self.extra_ui.get_menu_action('tree_database').exec_(
+                QCursor.pos()
+            )
+        )
+
+
+    def setup_state(self):
+        self.state = load_state()
+        self.setup_connections()
         
         self.text_editor.plain_text = self.state.editor_sql
 
@@ -356,6 +369,19 @@ class MainWindow(QMainWindow, WindowMixin):
         self.statusBar().addPermanentWidget(self.extra_ui.frame_statusbar, 1)
 
 
+    def copy_name(self):
+        position = self.tree_view_objects.mapToGlobal(QCursor.pos())
+        
+        index = self.tree_view_objects.currentIndex()
+        print(index.data())
+        #model = self.tree_view_objects.model()
+        #item = model.itemFromIndex(self.tree_view_objects.indexAt(QCursor.pos()))
+        #print(self.tree_view_objects.indexAt(QCursor.pos()).data())
+        QApplication.instance().clipboard().setText(
+            self.tree_view_objects.indexAt(QCursor.pos()).data()
+        )
+
+
     def bind_menu(self, window=None, s=''):
         if not window:
             window = self
@@ -374,6 +400,7 @@ class MainWindow(QMainWindow, WindowMixin):
         window.menu('action_font' + s, self.show_font_choice)
         window.menu('action_quit' + s, self.quit)
         window.menu('action_copy_cell' + s, self.copy_cell)
+        window.menu('action_copy_item_name' + s, self.copy_name)
 
 
     def quit(self):
@@ -398,6 +425,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.add_statusbar()
         self.bind_menu()
         self.bind_menu(self.extra_ui, '_result_set')
+        self.bind_menu(self.extra_ui, '_tree')
 
         self.setup_result_set('result_set_1')
         self.setup_result_set('result_set_2')
