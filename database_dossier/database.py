@@ -5,8 +5,11 @@ from PyQt5.Qt import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
+
 class DatabaseException(Exception): pass
 class QueryDatabaseException(DatabaseException): pass
+class ConnectionDatabaseException(DatabaseException): pass
+
 
 class ConnectionList(list):
     def __init__(self, connections, q_tree, active_index=None):
@@ -57,7 +60,7 @@ class ConnectionList(list):
 
     def execute_create_cursor(self, sql):
         if not self.active_connection:
-            raise mysql.connector.errors.Error('No connection')
+            raise ConnectionDatabaseException()
 
         is_boken = (
             'broken' in self.active_connection and
@@ -65,7 +68,7 @@ class ConnectionList(list):
         )
 
         if is_boken:
-            raise mysql.connector.errors.Error('No connection')
+            raise ConnectionDatabaseException()
 
         cursor = self.active_connection['connection'].cursor()
         try:
@@ -202,7 +205,7 @@ def update_tree(lst):
                 if 'database_changed' in lst.event_bindings and lst.active_index is not None and lst.active_index == index:
                     lst.event_bindings['database_changed'](connection_data['database'])
 
-            except QueryDatabaseException as e:
+            except DatabaseException as e:
                 errors.append([str(e)])
 
         connection_item = create_connection_item(**connection_data)
