@@ -74,7 +74,7 @@ class ConnectionDialog(QDialog, WindowMixin):
 
 
     def add(self):
-        connected = self.parent().add_connection_and_activate(
+        connected = self.parent().add_connection_activate(
             **self.connection_dict
         )
 
@@ -314,6 +314,13 @@ class MainWindow(QMainWindow, WindowMixin):
         self.result_sets['data'].is_error = True
         self.result_sets['data'].update_emit()
         self.show_record_set(0)
+
+
+    def add_connection_activate(self, **kwargs):
+        self.connections.append(kwargs)
+        self.connections.active_connection_index = len(self.connections) - 1
+
+        return True
 
 
     def setup_connections(self):

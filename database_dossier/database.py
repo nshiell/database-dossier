@@ -41,7 +41,10 @@ class ConnectionList(list):
     @active_connection_index.setter
     def active_connection_index(self, active_connection_index):
         self._active_connection_index = active_connection_index
+        self.draw_state()
 
+
+    def draw_state(self):
         errors = []
         create_connection_items(self.model.invisibleRootItem(), self, errors)
         if errors:
@@ -51,7 +54,6 @@ class ConnectionList(list):
             update_tree_state(self)
         except QueryDatabaseException as e:
             self.trigger('errors', ([str(e)],))
-
 
     def tree_click(self, model_index):
         connection_item = thingy
@@ -111,25 +113,26 @@ def update_tree_state(lst):
     connection_item.status = TreeItem.status_selected
     list_databases(lst, connection_item)
 
-    database_name = lst.active_connection['database']
-    if database_name:
-        if lst.active_connection and database_name:
-            change_database(lst, database_name)
-            for i in range(connection_item.rowCount()):
-                database_item = connection_item.child(i)
-                if database_item.text() == database_name:
-                    database_item.status = TreeItem.status_selected
-                    list_tables(lst, database_item)
+    if 'database' in lst.active_connection:
+        database_name = lst.active_connection['database']
+        if database_name:
+            if lst.active_connection and database_name:
+                change_database(lst, database_name)
+                for i in range(connection_item.rowCount()):
+                    database_item = connection_item.child(i)
+                    if database_item.text() == database_name:
+                        database_item.status = TreeItem.status_selected
+                        list_tables(lst, database_item)
 
-                    table_name = lst.active_connection['table']
-                    if table_name:
-                        for j in range(database_item.rowCount()):
-                            table_item = database_item.child(j)
-                            if table_item.text() == table_name:
-                                table_item.status = TreeItem.status_selected
-                                lst.trigger('table_changed', table_name)
+                        table_name = lst.active_connection['table']
+                        if table_name:
+                            for j in range(database_item.rowCount()):
+                                table_item = database_item.child(j)
+                                if table_item.text() == table_name:
+                                    table_item.status = TreeItem.status_selected
+                                    lst.trigger('table_changed', table_name)
 
-                    return None
+                        return None
 
 
 def name_from_connection_data(data):
