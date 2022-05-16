@@ -55,6 +55,7 @@ class ConnectionList(list):
         except QueryDatabaseException as e:
             self.trigger('errors', ([str(e)],))
 
+
     def tree_click(self, model_index):
         connection_item = thingy
         database_item = thingy
@@ -138,6 +139,14 @@ def update_tree_state(lst):
 def name_from_connection_data(data):
     return '%s@%s:%s' % (data['user'], data['host'], data['port'])
 
+
+def create_db_connection_error(**kwargs):
+    try:
+        create_db_connection(**kwargs)
+    except mysql.connector.errors.Error as e:
+        return str(e)
+
+    return None
 
 def create_db_connection(**kwargs):
     allowed = ['host', 'password', 'user', 'port']

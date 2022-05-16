@@ -5,7 +5,29 @@ from PyQt5.QtCore import *
 from .ui import *
 from . import syntax_highlighter
 from .store import *
-from .database import ConnectionList, DatabaseException
+from .database import (
+    ConnectionList,
+    DatabaseException,
+    create_db_connection_error
+)
+
+
+def show_connection_error(text):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Critical)
+    msg.setText("Error")
+    msg.setInformativeText(text)
+    msg.setWindowTitle("Error")
+    msg.exec_()
+
+
+def show_connection_ok():
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText("Ok")
+    msg.setInformativeText('Can connect')
+    msg.setWindowTitle("OK")
+    msg.exec_()
 
 
 class HelpDialog(QDialog, WindowMixin):
@@ -65,9 +87,9 @@ class ConnectionDialog(QDialog, WindowMixin):
         self.setFixedSize(QSize(300, 140))
         self.load_xml('connection.ui')
 
-        self.test.clicked.connect(lambda: main_win.test_connection(
-            **self.connection_dict
-        ))
+        self.test.clicked.connect(lambda:
+            main_win.test_connection(**self.connection_dict)
+        )
 
         self.bind('button_box.Ok', 'clicked', self.add)
         self.bind('button_box.Cancel', 'clicked', self.close)
@@ -119,6 +141,14 @@ class MainWindow(QMainWindow, WindowMixin):
                 QCursor.pos()
             )
         )
+
+
+    def test_connection(self, **kwargs):
+        error = create_db_connection_error(**kwargs)
+        if error is not None:
+            show_connection_error(error)
+        else:
+            show_connection_ok()
 
 
     def copy_cell(self):
