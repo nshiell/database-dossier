@@ -40,8 +40,20 @@ class ConnectionList(list):
 
     @active_connection_index.setter
     def active_connection_index(self, active_connection_index):
+        is_change = self._active_connection_index != active_connection_index
         self._active_connection_index = active_connection_index
         self.draw_state()
+
+        c = self.active_connection
+        if is_change and 'broken' in c and not c['broken']:
+            names = {'connection': None, 'database': None, 'table': None}
+            if 'name' in c:
+                names['connection'] = c['name']
+
+            if 'database' in c:
+                names['database'] = c['database']
+
+            self.trigger('focus_changed', names)
 
 
     def draw_state(self):
