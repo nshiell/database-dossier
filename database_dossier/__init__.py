@@ -419,15 +419,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def copy_name(self):
         position = self.tree_view_objects.mapToGlobal(QCursor.pos())
-        
         index = self.tree_view_objects.currentIndex()
-        print(index.data())
-        #model = self.tree_view_objects.model()
-        #item = model.itemFromIndex(self.tree_view_objects.indexAt(QCursor.pos()))
-        #print(self.tree_view_objects.indexAt(QCursor.pos()).data())
-        QApplication.instance().clipboard().setText(
-            self.tree_view_objects.indexAt(QCursor.pos()).data()
-        )
+        QApplication.instance().clipboard().setText(index.data())
 
 
     def bind_menu(self, window=None, s=''):
