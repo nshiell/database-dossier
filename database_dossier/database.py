@@ -125,7 +125,9 @@ def update_tree_state(lst):
         return None
 
     connection_item = lst.model.invisibleRootItem().child(lst._active_connection_index)
-    connection_item.status = TreeItem.status_selected
+    if 'broken' not in lst.active_connection or not lst.active_connection['broken']:
+        connection_item.status = TreeItem.status_selected
+
     list_databases(lst, connection_item)
 
     if 'database' in lst.active_connection:
