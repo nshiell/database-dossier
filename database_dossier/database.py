@@ -56,10 +56,20 @@ class ConnectionList(list):
             self.trigger('errors', ([str(e)],))
 
 
+    def list_index_from_name(self, name):
+        for i, connection in enumerate(self):
+            if 'name' in connection and connection['name'] == name:
+                return i
+
+        return None
+
+
     def tree_click(self, model_index):
         names = find_connection_database_table_from_index(model_index)
-        print(self.model.itemFromIndex(model_index))
-        self.trigger('focus_changed', names)
+        index_list = self.list_index_from_name(names['connection'])
+        if index_list is not None and not self[index_list]['broken']:
+            self.active_connection_index = index_list
+            self.trigger('focus_changed', names)
         
         """
         Make the code cehck for duplicate names allowing redraw
@@ -176,10 +186,9 @@ def create_db_connection(**kwargs):
 
 def create_connection_items(root_node, lst, errors):
     for connection_data in lst:
-        connection_data['broken'] = False
-
         name = name_from_connection_data(connection_data)
         if [c for c in lst if 'name' in c and c['name'] == name]: continue
+        connection_data['broken'] = False
         if 'q_tree_item' in connection_data: continue
 
         connection_data['name'] = name
