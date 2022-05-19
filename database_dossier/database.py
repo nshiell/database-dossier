@@ -22,6 +22,9 @@ class ConnectionList(list):
         self.event_bindings = {}
         self._active_connection_index = None
 
+        self.last_connection_item = None
+        self.last_database_item = None
+
 
     def trigger(self, event_name, args):
         if event_name in self.event_bindings:
@@ -78,24 +81,21 @@ class ConnectionList(list):
 
     def tree_click(self, model_index):
         names = find_connection_database_table_from_index(model_index)
+
         index_list = self.list_index_from_name(names['connection'])
         if index_list is not None and not self[index_list]['broken']:
+            if names['database']:
+                self[index_list]['database'] = names['database']
+
             self.active_connection_index = index_list
             self.trigger('focus_changed', names)
-        
-        """
-        Make the code cehck for duplicate names allowing redraw
-        make redraw remove the existing tree
-        
-        then update the following properties
-        then redraw the tree
-        
-        then trigger event?
-        
-        connection_item = thingy
-        database_item = thingy
-        table_item = thingy
-        """
+
+
+    def is_active_connection_broken(self):
+        if 'broken' not in self.active_connection:
+            return False
+
+        return self.active_connection['broken']
 
 
     def bind(self, event_name, event_callback):
@@ -103,12 +103,10 @@ class ConnectionList(list):
 
 
     def execute_active_connection_cursor(self, sql):
-        """
         if not self.active_connection:
             raise QueryDatabaseException('No connection')
-        """
 
-        if self.active_connection['broken']: # test!
+        if self.active_connection['broken']:
             raise QueryDatabaseException('No connection')
 
         cursor = self.active_connection['db_connection'].cursor()
@@ -121,17 +119,19 @@ class ConnectionList(list):
 
 
 def list_databases(lst, connection_item):
-    for x in lst.execute_active_connection_cursor('SHOW DATABASES;'):
-        connection_item.appendRow(DatabaseTreeItem(name=x[0]))
-
-    lst.q_tree.expand(connection_item.index())
+    if connection_item.rowCount() == 0:
+        for x in lst.execute_active_connection_cursor('SHOW DATABASES;'):
+            connection_item.appendRow(DatabaseTreeItem(name=x[0]))
+    
+        lst.q_tree.expand(connection_item.index())
 
 
 def list_tables(lst, database_item):
-    for x in lst.execute_active_connection_cursor('SHOW TABLES;'):
-        database_item.appendRow(TableTreeItem(name=x[0]))
+    if database_item.rowCount() == 0:
+        for x in lst.execute_active_connection_cursor('SHOW TABLES;'):
+            database_item.appendRow(TableTreeItem(name=x[0]))
 
-    lst.q_tree.expand(database_item.index())
+        lst.q_tree.expand(database_item.index())
 
 
 def escape(text):
@@ -142,36 +142,43 @@ def change_database(lst, db_name):
     lst.execute_active_connection_cursor('USE %s;' % escape(db_name))
 
 
+def select_connection(lst, connection_item):
+    connection_item.status = TreeItem.status_selected
+
+    if lst.last_connection_item:
+        lst.last_connection_item.status = TreeItem.status_normal
+    lst.last_connection_item = connection_item
+
+
+def select_database(lst, database_item):
+    database_item.status = TreeItem.status_selected
+
+    if lst.last_database_item:
+        lst.last_database_item.status = TreeItem.status_normal
+    lst.last_database_item = database_item
+
+
 def update_tree_state(lst):
     if lst._active_connection_index is None:
         return None
 
     connection_item = lst.model.invisibleRootItem().child(lst._active_connection_index)
-    if 'broken' not in lst.active_connection or not lst.active_connection['broken']:
-        connection_item.status = TreeItem.status_selected
+    if not lst.is_active_connection_broken():
+        select_connection(lst, connection_item)
 
-    list_databases(lst, connection_item)
-
-    if 'database' in lst.active_connection:
-        database_name = lst.active_connection['database']
-        if database_name:
-            if lst.active_connection and database_name:
-                change_database(lst, database_name)
-                for i in range(connection_item.rowCount()):
-                    database_item = connection_item.child(i)
-                    if database_item.text() == database_name:
-                        database_item.status = TreeItem.status_selected
-                        list_tables(lst, database_item)
-                        """
-                        table_name = lst.active_connection['table']
-                        if table_name:
-                            for j in range(database_item.rowCount()):
-                                table_item = database_item.child(j)
-                                if table_item.text() == table_name:
-                                    table_item.status = TreeItem.status_selected
-                                    lst.trigger('table_changed', table_name)
-                        """
-                        return None
+        list_databases(lst, connection_item)
+    
+        if 'database' in lst.active_connection:
+            database_name = lst.active_connection['database']
+            if database_name:
+                if lst.active_connection and database_name:
+                    change_database(lst, database_name)
+                    for i in range(connection_item.rowCount()):
+                        database_item = connection_item.child(i)
+                        if database_item.text() == database_name:
+                            select_database(lst, database_item)
+                            list_tables(lst, database_item)
+                            return None
 
 
 def name_from_connection_data(data):
