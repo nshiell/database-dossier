@@ -322,7 +322,18 @@ class MainWindow(QMainWindow, WindowMixin):
         return model_index.row() # connection
 
 
-    def table_changed(self, table_name):
+    def tree_select_changed(self, table, database, connection):
+        if table:
+            self.show_table(table)
+
+        if database:
+            self.f('connection_indicator').setText(database)
+
+        if connection:
+            self.f('db_name').setText(connection)
+
+
+    def show_table(self, table_name):
         table_name_clean = repr(table_name)[1:-1]
 
         self.execute_update_table_model(
@@ -359,10 +370,10 @@ class MainWindow(QMainWindow, WindowMixin):
             self.tree_view_objects
         )
 
-        self.connections.bind('table_changed', self.table_changed)
+        self.connections.bind('focus_changed', lambda names: self.tree_select_changed(**names))
         self.connections.bind('log_line', self.log_line)
-        self.connections.bind('connection_changed', self.f('connection_indicator').setText)
-        self.connections.bind('database_changed', self.f('db_name').setText)
+        #self.connections.bind('connection_changed', self.f('connection_indicator').setText)
+        #self.connections.bind('database_changed', self.f('db_name').setText)
         self.connections.bind('errors', self.error_handler)
 
         self.connections.active_connection_index = self.state.active_connection_index

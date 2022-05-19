@@ -57,9 +57,23 @@ class ConnectionList(list):
 
 
     def tree_click(self, model_index):
+        names = find_connection_database_table_from_index(model_index)
+        print(self.model.itemFromIndex(model_index))
+        self.trigger('focus_changed', names)
+        
+        """
+        Make the code cehck for duplicate names allowing redraw
+        make redraw remove the existing tree
+        
+        then update the following properties
+        then redraw the tree
+        
+        then trigger event?
+        
         connection_item = thingy
         database_item = thingy
         table_item = thingy
+        """
 
 
     def bind(self, event_name, event_callback):
@@ -124,7 +138,7 @@ def update_tree_state(lst):
                     if database_item.text() == database_name:
                         database_item.status = TreeItem.status_selected
                         list_tables(lst, database_item)
-
+                        """
                         table_name = lst.active_connection['table']
                         if table_name:
                             for j in range(database_item.rowCount()):
@@ -132,7 +146,7 @@ def update_tree_state(lst):
                                 if table_item.text() == table_name:
                                     table_item.status = TreeItem.status_selected
                                     lst.trigger('table_changed', table_name)
-
+                        """
                         return None
 
 
@@ -164,10 +178,13 @@ def create_connection_items(root_node, lst, errors):
 
         name = name_from_connection_data(connection_data)
         if [c for c in lst if 'name' in c and c['name'] == name]: continue
+        if 'q_tree_item' in connection_data: continue
+
         connection_data['name'] = name
 
         tree_item = ConnectionTreeItem(**connection_data)
         root_node.appendRow(tree_item)
+        connection_data['q_tree_item'] = tree_item
 
         try:
             connection_data['db_connection'] = create_db_connection(**connection_data)
@@ -273,3 +290,34 @@ class TableTreeItem(TreeItem):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.font_point_size = 9
+
+
+def find_connection_database_table_from_index(model_index):
+    names = {
+        'table'      : None,
+        'database'   : None,
+        'connection' : None
+    }
+
+    level = item_type_from_index(model_index)
+    if level == 'table':
+        names['table'] = model_index.data()
+        names['database'] = model_index.parent().data()
+        names['connection'] = model_index.parent().parent().data()
+    elif level == 'database':
+        names['database'] = model_index.data()
+        names['connection'] = model_index.parent().data()
+    else: # connection
+        names['connection'] = model_index.data()
+
+    return names
+    #print(model_index.row())
+
+def item_type_from_index(model_index):
+    if not model_index.parent().isValid():
+        return 'connection'
+
+    if model_index.parent().parent().isValid():
+        return 'table'
+
+    return 'database'
