@@ -30,11 +30,12 @@ def show_connection_ok():
     msg.exec_()
 
 
-class HelpDialog(QDialog, WindowMixin):
+class InfoDialog(QDialog, WindowMixin):
     def __init__(self, main_win):
         super().__init__(main_win)
         self._doc_dir = None
         self.setup = False
+        self.page = None
 
     def show(self):
         """
@@ -44,7 +45,9 @@ class HelpDialog(QDialog, WindowMixin):
         if not self.setup:
             self.resize(QSize(600, 300))
             self.load_xml('help.ui')
-            self.web_view.setUrl(QUrl('file://' + self.doc_dir + '/help.html'))
+            self.web_view.setUrl(
+                QUrl('file://' + self.doc_dir + '/' + self.page)
+            )
             self.web_view.loadFinished.connect(self.load_finished)
             self.setup = True
 
@@ -72,12 +75,10 @@ class HelpDialog(QDialog, WindowMixin):
         return self._doc_dir
 
 
-class AboutDialog(QDialog, WindowMixin):
+class HelpDialog(InfoDialog):
     def __init__(self, main_win):
         super().__init__(main_win)
-
-        self.setFixedSize(QSize(600, 300))
-        self.load_xml('about.ui')
+        self.page = 'help.html'
 
 
 class ConnectionDialog(QDialog, WindowMixin):
@@ -124,8 +125,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.extra_ui_file_name = 'extra.ui'
         self.result_sets = {}
         self.connection_dialog = ConnectionDialog(self)
-        self.about_dialog = AboutDialog(self)
-        self.help_dialog = HelpDialog(self)
         self.setup_text_editor()
         self.setup()
 
@@ -442,6 +441,8 @@ class MainWindow(QMainWindow, WindowMixin):
         window.menu('action_quit' + s, self.quit)
         window.menu('action_copy_cell' + s, self.copy_cell)
         window.menu('action_copy_item_name' + s, self.copy_name)
+
+        window.menu('action_help' + s, HelpDialog(window).show)
 
 
     def quit(self):
