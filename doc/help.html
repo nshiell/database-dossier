@@ -100,19 +100,16 @@ class HostClient {
     }
 
     ready (callback) {
-        if (window.host) {
+        setTimeout(() => {
             callback()
-        } else {
-            setTimeout(() => {
-                this.ready(callback)
-            }, 5)
-        }
+        }, 5)
     }
 }
 
 const hostClient = new HostClient()
 
 $(function() {
+    const documentStructure = []
     hostClient.ready(function () {
         hostClient.query('config-path', null, function (path) {
             $('.config-path').html(path)
@@ -120,7 +117,6 @@ $(function() {
         hostClient.query('document-structure', documentStructure)
     })
 
-    const documentStructure = []
     let $currentH1 = null
     $('.topic').each(function () {
         const $topic = $(this)
