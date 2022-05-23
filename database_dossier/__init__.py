@@ -5,14 +5,37 @@ from PyQt5.QtCore import *
 from .ui import *
 from . import syntax_highlighter
 from .store import *
-from .database import ConnectionList, DatabaseException
+from .database import (
+    ConnectionList,
+    DatabaseException,
+    create_db_connection_error
+)
 
 
-class HelpDialog(QDialog, WindowMixin):
+def show_connection_error(text):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Critical)
+    msg.setText("Error")
+    msg.setInformativeText(text)
+    msg.setWindowTitle("Error")
+    msg.exec_()
+
+
+def show_connection_ok():
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText("Ok")
+    msg.setInformativeText('Can connect')
+    msg.setWindowTitle("OK")
+    msg.exec_()
+
+
+class InfoDialog(QDialog, WindowMixin):
     def __init__(self, main_win):
         super().__init__(main_win)
         self._doc_dir = None
         self.setup = False
+        self.page = None
 
     def show(self):
         """
@@ -22,7 +45,9 @@ class HelpDialog(QDialog, WindowMixin):
         if not self.setup:
             self.resize(QSize(600, 300))
             self.load_xml('help.ui')
-            self.web_view.setUrl(QUrl('file://' + self.doc_dir + '/help.html'))
+            self.web_view.setUrl(
+                QUrl('file://' + self.doc_dir + '/' + self.page)
+            )
             self.web_view.loadFinished.connect(self.load_finished)
             self.setup = True
 
@@ -50,12 +75,10 @@ class HelpDialog(QDialog, WindowMixin):
         return self._doc_dir
 
 
-class AboutDialog(QDialog, WindowMixin):
+class HelpDialog(InfoDialog):
     def __init__(self, main_win):
         super().__init__(main_win)
-
-        self.setFixedSize(QSize(600, 300))
-        self.load_xml('about.ui')
+        self.page = 'help.html'
 
 
 class ConnectionDialog(QDialog, WindowMixin):
@@ -65,16 +88,16 @@ class ConnectionDialog(QDialog, WindowMixin):
         self.setFixedSize(QSize(300, 140))
         self.load_xml('connection.ui')
 
-        self.test.clicked.connect(lambda: main_win.test_connection(
-            **self.connection_dict
-        ))
+        self.test.clicked.connect(lambda:
+            main_win.test_connection(**self.connection_dict)
+        )
 
         self.bind('button_box.Ok', 'clicked', self.add)
         self.bind('button_box.Cancel', 'clicked', self.close)
 
 
     def add(self):
-        connected = self.parent().add_connection_and_activate(
+        connected = self.parent().add_connection_activate(
             **self.connection_dict
         )
 
@@ -102,8 +125,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.extra_ui_file_name = 'extra.ui'
         self.result_sets = {}
         self.connection_dialog = ConnectionDialog(self)
-        self.about_dialog = AboutDialog(self)
-        self.help_dialog = HelpDialog(self)
         self.setup_text_editor()
         self.setup()
 
@@ -119,6 +140,14 @@ class MainWindow(QMainWindow, WindowMixin):
                 QCursor.pos()
             )
         )
+
+
+    def test_connection(self, **kwargs):
+        error = create_db_connection_error(**kwargs)
+        if error is not None:
+            show_connection_error(error)
+        else:
+            show_connection_ok()
 
 
     def copy_cell(self):
@@ -216,7 +245,7 @@ class MainWindow(QMainWindow, WindowMixin):
         q_tab_bar = self.tab_result_sets.tabBar()
         old_color = q_tab_bar.tabTextColor(tab_index)
 
-        new_color = QColor('#FFFF66') if self.is_dark else QColor('#444400')
+        new_color = QColor('black') if self.is_dark else QColor('white')
         times = 0
 
         def change():
@@ -292,7 +321,18 @@ class MainWindow(QMainWindow, WindowMixin):
         return model_index.row() # connection
 
 
-    def table_changed(self, table_name):
+    def tree_select_changed(self, table, database, connection):
+        if table:
+            self.show_table(table)
+
+        if database:
+            self.f('connection_indicator').setText(database)
+
+        if connection:
+            self.f('db_name').setText(connection)
+
+
+    def show_table(self, table_name):
         table_name_clean = repr(table_name)[1:-1]
 
         self.execute_update_table_model(
@@ -308,26 +348,46 @@ class MainWindow(QMainWindow, WindowMixin):
         self.tab_result_sets.setTabText(0, 'Data: ' + table_name)
 
 
-    def setup_state(self):
-        self.state = load_state()
+    def error_handler(self, errors):
+        self.result_sets['data'].headers = ['Error']
+        self.result_sets['data'].record_set = errors
+        self.result_sets['data'].is_error = True
+        self.result_sets['data'].update_emit()
+        self.show_record_set(0)
+
+
+    def add_connection_activate(self, **kwargs):
+        self.connections.append(kwargs)
+        self.connections.active_connection_index = len(self.connections) - 1
+
+        return True
+
+
+    def setup_connections(self):
         self.connections = ConnectionList(
             self.state.connections,
-            self.tree_view_objects,
-            self.state.active_connection_index
+            self.tree_view_objects
         )
 
-        self.connections.bind('table_changed', self.table_changed)
+        self.connections.bind('focus_changed', lambda names: self.tree_select_changed(**names))
         self.connections.bind('log_line', self.log_line)
-        self.connections.bind('connection_changed', self.f('connection_indicator').setText)
-        self.connections.bind('database_changed', self.f('db_name').setText)
+        #self.connections.bind('connection_changed', self.f('connection_indicator').setText)
+        #self.connections.bind('database_changed', self.f('db_name').setText)
+        self.connections.bind('errors', self.error_handler)
 
-        errors = self.connections.update_tree_and_get_errors()
-        if errors:
-            self.result_sets['data'].headers = ['Error']
-            self.result_sets['data'].record_set = errors
-            self.result_sets['data'].is_error = True
-            self.result_sets['data'].update_emit()
-            self.show_record_set(0)
+        self.connections.active_connection_index = self.state.active_connection_index
+
+        self.tree_view_objects.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_view_objects.customContextMenuRequested.connect(lambda:
+            self.extra_ui.get_menu_action('tree_database').exec_(
+                QCursor.pos()
+            )
+        )
+
+
+    def setup_state(self):
+        self.state = load_state()
+        self.setup_connections()
         
         self.text_editor.plain_text = self.state.editor_sql
 
@@ -356,6 +416,12 @@ class MainWindow(QMainWindow, WindowMixin):
         self.statusBar().addPermanentWidget(self.extra_ui.frame_statusbar, 1)
 
 
+    def copy_name(self):
+        position = self.tree_view_objects.mapToGlobal(QCursor.pos())
+        index = self.tree_view_objects.currentIndex()
+        QApplication.instance().clipboard().setText(index.data())
+
+
     def bind_menu(self, window=None, s=''):
         if not window:
             window = self
@@ -374,6 +440,9 @@ class MainWindow(QMainWindow, WindowMixin):
         window.menu('action_font' + s, self.show_font_choice)
         window.menu('action_quit' + s, self.quit)
         window.menu('action_copy_cell' + s, self.copy_cell)
+        window.menu('action_copy_item_name' + s, self.copy_name)
+
+        window.menu('action_help' + s, HelpDialog(window).show)
 
 
     def quit(self):
@@ -398,6 +467,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.add_statusbar()
         self.bind_menu()
         self.bind_menu(self.extra_ui, '_result_set')
+        self.bind_menu(self.extra_ui, '_tree')
 
         self.setup_result_set('result_set_1')
         self.setup_result_set('result_set_2')

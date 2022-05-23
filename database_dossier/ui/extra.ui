@@ -75,7 +75,7 @@
        <item>
         <widget class="QLabel" name="connection_indicator">
          <property name="text">
-          <string>Connected: a@b</string>
+          <string>Connected: Not connected</string>
          </property>
         </widget>
        </item>
@@ -115,8 +115,17 @@
     </property>
     <addaction name="action_copy_cell_result_set"/>
    </widget>
+   <widget class="QMenu" name="tree_database">
+    <property name="title">
+     <string>tree</string>
+    </property>
+    <addaction name="action_copy_item_name_tree"/>
+    <addaction name="action_refresh_tree"/>
+    <addaction name="actionRemove_Connection"/>
+   </widget>
    <addaction name="editor"/>
    <addaction name="action_result_set"/>
+   <addaction name="tree_database"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionUndo">
@@ -245,13 +254,40 @@
   </action>
   <action name="action_copy_cell_result_set">
    <property name="icon">
-    <iconset theme="edit-copy"/>
+    <iconset theme="edit-copy">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Copy</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
+  <action name="action_refresh_tree">
+   <property name="icon">
+    <iconset theme="view-refresh">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Refresh Connection</string>
+   </property>
+  </action>
+  <action name="action_copy_item_name_tree">
+   <property name="icon">
+    <iconset theme="edit-copy">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Copy name</string>
+   </property>
+  </action>
+  <action name="actionRemove_Connection">
+   <property name="icon">
+    <iconset theme="delete"/>
+   </property>
+   <property name="text">
+    <string>Unsubscribe to Server</string>
    </property>
   </action>
  </widget>

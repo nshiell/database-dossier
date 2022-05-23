@@ -315,7 +315,8 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
       <string>Active Result Set</string>
      </property>
      <property name="icon">
-      <iconset theme="table"/>
+      <iconset theme="table">
+       <normaloff>.</normaloff>.</iconset>
      </property>
      <addaction name="action_copy_cell"/>
     </widget>
@@ -339,9 +340,19 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
     <addaction name="action_text_size_increase"/>
     <addaction name="action_text_size_decrease"/>
    </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="action_help"/>
+    <addaction name="action_donate"/>
+    <addaction name="separator"/>
+    <addaction name="action_about"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
    <addaction name="menu_View"/>
+   <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_create_connection">
@@ -605,13 +616,43 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
   </action>
   <action name="action_copy_cell">
    <property name="icon">
-    <iconset theme="edit-copy"/>
+    <iconset theme="edit-copy">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Copy Cell</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
+  <action name="action_help">
+   <property name="icon">
+    <iconset theme="help-about">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;User Interface</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
+  </action>
+  <action name="action_about">
+   <property name="icon">
+    <iconset theme="help-about">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="action_donate">
+   <property name="icon">
+    <iconset theme="love"/>
+   </property>
+   <property name="text">
+    <string>Donate</string>
    </property>
   </action>
  </widget>
