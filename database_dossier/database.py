@@ -145,7 +145,7 @@ def change_database(lst, db_name):
 def select_connection(lst, connection_item):
     connection_item.status = TreeItem.status_selected
 
-    if lst.last_connection_item:
+    if lst.last_connection_item and lst.last_connection_item != connection_item:
         lst.last_connection_item.status = TreeItem.status_normal
     lst.last_connection_item = connection_item
 
@@ -153,7 +153,7 @@ def select_connection(lst, connection_item):
 def select_database(lst, database_item):
     database_item.status = TreeItem.status_selected
 
-    if lst.last_database_item:
+    if lst.last_database_item and lst.last_database_item != database_item:
         lst.last_database_item.status = TreeItem.status_normal
     lst.last_database_item = database_item
 
