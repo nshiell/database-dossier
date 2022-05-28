@@ -26,6 +26,23 @@ class ConnectionList(list):
         self.last_database_item = None
 
 
+    def pop(self, index=None):
+        if index == None:
+            index = len(self) - 1
+
+        if index == self._active_connection_index:
+            self._active_connection_index = None
+        elif self._active_connection_index > index:
+            self._active_connection_index-= 1
+
+        connection = self[index]
+        connection['should_remove'] = True
+        self.draw_state()
+        #connection['should_remove'] = False
+
+        return super().pop(index)
+
+
     def trigger(self, event_name, args):
         if event_name in self.event_bindings:
             self.event_bindings[event_name](args)
@@ -204,10 +221,15 @@ def create_db_connection(**kwargs):
 
 
 def create_connection_items(root_node, lst, errors):
-    for connection_data in lst:
+    for i, connection_data in enumerate(lst):
         name = name_from_connection_data(connection_data)
+        if 'should_remove' in connection_data and connection_data['should_remove']:
+            lst.model.removeRow(i)
+            continue
+
         if [c for c in lst if 'name' in c and c['name'] == name]: continue
         connection_data['broken'] = False
+
         if 'q_tree_item' in connection_data: continue
 
         connection_data['name'] = name

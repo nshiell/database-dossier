@@ -115,17 +115,17 @@
     </property>
     <addaction name="action_copy_cell_result_set"/>
    </widget>
-   <widget class="QMenu" name="tree_database">
+   <widget class="QMenu" name="tree_connection">
     <property name="title">
-     <string>tree</string>
+     <string>tree_connection</string>
     </property>
     <addaction name="action_copy_item_name_tree"/>
     <addaction name="action_refresh_tree"/>
-    <addaction name="actionRemove_Connection"/>
+    <addaction name="action_connection_remove_tree_connection"/>
    </widget>
    <addaction name="editor"/>
    <addaction name="action_result_set"/>
-   <addaction name="tree_database"/>
+   <addaction name="tree_connection"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionUndo">
@@ -282,12 +282,13 @@
     <string>&amp;Copy name</string>
    </property>
   </action>
-  <action name="actionRemove_Connection">
+  <action name="action_connection_remove_tree_connection">
    <property name="icon">
-    <iconset theme="delete"/>
+    <iconset theme="delete">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
-    <string>Unsubscribe to Server</string>
+    <string>Unsubscribe from Server</string>
    </property>
   </action>
  </widget>

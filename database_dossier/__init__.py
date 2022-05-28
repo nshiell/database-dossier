@@ -30,6 +30,17 @@ def show_connection_ok():
     msg.exec_()
 
 
+def show_confirm_remove_connection(name):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText("Unsubscribe")
+    msg.setInformativeText('Do you want to unsubscribe from %s?' % name)
+    msg.setWindowTitle("Unsubscribe - Database Dossier")
+    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+    return msg.exec_()
+
+
 class InfoDialog(QDialog, WindowMixin):
     def __init__(self, main_win):
         super().__init__(main_win)
@@ -364,6 +375,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def setup_connections(self):
+        self.last_tree_model_index = None
         self.connections = ConnectionList(
             self.state.connections,
             self.tree_view_objects
@@ -376,13 +388,19 @@ class MainWindow(QMainWindow, WindowMixin):
         self.connections.bind('errors', self.error_handler)
 
         self.connections.active_connection_index = self.state.active_connection_index
-
         self.tree_view_objects.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tree_view_objects.customContextMenuRequested.connect(lambda:
-            self.extra_ui.get_menu_action('tree_database').exec_(
-                QCursor.pos()
-            )
+        self.tree_view_objects.customContextMenuRequested.connect(
+            self.tree_context_menu
         )
+
+
+    def tree_context_menu(self, pos):
+        index = self.tree_view_objects.indexAt(pos)
+        if index.parent().isValid():
+            return None
+
+        self.last_tree_model_index = index
+        self.extra_ui.get_menu_action('tree_connection').exec_(QCursor.pos())
 
 
     def setup_state(self):
@@ -441,8 +459,15 @@ class MainWindow(QMainWindow, WindowMixin):
         window.menu('action_quit' + s, self.quit)
         window.menu('action_copy_cell' + s, self.copy_cell)
         window.menu('action_copy_item_name' + s, self.copy_name)
+        window.menu('action_connection_remove' + s, self.remove_connection)
 
         window.menu('action_help' + s, HelpDialog(window).show)
+
+
+    def remove_connection(self):
+        confirmation = show_confirm_remove_connection(self.last_tree_model_index.data())
+        if confirmation == QMessageBox.Ok:
+            self.connections.pop(self.last_tree_model_index.row())
 
 
     def quit(self):
@@ -467,7 +492,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.add_statusbar()
         self.bind_menu()
         self.bind_menu(self.extra_ui, '_result_set')
-        self.bind_menu(self.extra_ui, '_tree')
+        self.bind_menu(self.extra_ui, '_tree_connection')
 
         self.setup_result_set('result_set_1')
         self.setup_result_set('result_set_2')
