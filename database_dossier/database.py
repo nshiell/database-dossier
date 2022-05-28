@@ -30,12 +30,13 @@ class ConnectionList(list):
         if index == None:
             index = len(self) - 1
 
-        if index == self._active_connection_index:
-            self._active_connection_index = None
-            self.last_connection_item = None
-            self.last_database_item = None
-        elif self._active_connection_index > index:
-            self._active_connection_index-= 1
+        if self._active_connection_index is not None:
+            if index == self._active_connection_index:
+                self._active_connection_index = None
+                self.last_connection_item = None
+                self.last_database_item = None
+            elif self._active_connection_index > index:
+                self._active_connection_index-= 1
 
         connection = self[index]
         connection['should_remove'] = True
