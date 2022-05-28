@@ -30,6 +30,12 @@ class ConnectionList(list):
         if index == None:
             index = len(self) - 1
 
+        names = {
+            'table'      : None,
+            'database'   : None,
+            'connection' : None
+        }
+
         if self._active_connection_index is not None:
             if index == self._active_connection_index:
                 self._active_connection_index = None
@@ -37,13 +43,15 @@ class ConnectionList(list):
                 self.last_database_item = None
             elif self._active_connection_index > index:
                 self._active_connection_index-= 1
+                names['connection'] = self[self._active_connection_index]['name']
 
         connection = self[index]
         connection['should_remove'] = True
         self.draw_state()
-        #connection['should_remove'] = False
+        super().pop(index)
+        self.trigger('focus_changed', names)
 
-        return super().pop(index)
+        return connection
 
 
     def trigger(self, event_name, args):

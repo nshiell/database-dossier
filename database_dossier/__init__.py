@@ -333,14 +333,17 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def tree_select_changed(self, table, database, connection):
-        if table:
-            self.show_table(table)
-
-        if database:
-            self.f('connection_indicator').setText(database)
-
         if connection:
             self.f('db_name').setText(connection)
+
+            if table:
+                self.show_table(table)
+
+            if database:
+                self.f('connection_indicator').setText(database)
+        else:
+            self.f('db_name').setText('')
+            self.f('connection_indicator').setText('')
 
 
     def show_table(self, table_name):
