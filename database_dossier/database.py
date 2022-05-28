@@ -32,6 +32,8 @@ class ConnectionList(list):
 
         if index == self._active_connection_index:
             self._active_connection_index = None
+            self.last_connection_item = None
+            self.last_database_item = None
         elif self._active_connection_index > index:
             self._active_connection_index-= 1
 
