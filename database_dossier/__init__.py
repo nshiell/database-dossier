@@ -452,7 +452,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def copy_name(self):
-        position = self.tree_view_objects.mapToGlobal(QCursor.pos())
         index = self.tree_view_objects.currentIndex()
         QApplication.instance().clipboard().setText(index.data())
 

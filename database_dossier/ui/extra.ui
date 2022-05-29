@@ -119,7 +119,7 @@
     <property name="title">
      <string>tree_connection</string>
     </property>
-    <addaction name="action_copy_item_name_tree"/>
+    <addaction name="action_copy_item_name_tree_connection"/>
     <addaction name="action_refresh_tree"/>
     <addaction name="action_connection_remove_tree_connection"/>
    </widget>
@@ -273,7 +273,7 @@
     <string>&amp;Refresh Connection</string>
    </property>
   </action>
-  <action name="action_copy_item_name_tree">
+  <action name="action_copy_item_name_tree_connection">
    <property name="icon">
     <iconset theme="edit-copy">
      <normaloff>.</normaloff>.</iconset>
