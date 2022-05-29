@@ -390,7 +390,9 @@ class MainWindow(QMainWindow, WindowMixin):
         #self.connections.bind('database_changed', self.f('db_name').setText)
         self.connections.bind('errors', self.error_handler)
 
-        self.connections.active_connection_index = self.state.active_connection_index
+        if self.state.active_connection_index < len(self.state.connections):
+            self.connections.active_connection_index = self.state.active_connection_index
+
         self.tree_view_objects.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree_view_objects.customContextMenuRequested.connect(
             self.tree_context_menu
@@ -524,5 +526,7 @@ class MainWindow(QMainWindow, WindowMixin):
     def closeEvent(self, event):
         sql = self.text_edit_sql.toPlainText()
         self.state.editor_sql = sql
-        
+        self.state.connections = self.connections
+        self.state.active_connection_index = self.connections.active_connection_index
+
         save_state(self.state)
