@@ -126,6 +126,15 @@ class ConnectionDialog(QDialog, WindowMixin):
         }
 
 
+    def show(self):
+        self.host.setText('')
+        self.port.setValue(3306)
+        self.user.setText('')
+        self.password.setText('')
+
+        super().show()
+
+
 class MainWindow(QMainWindow, WindowMixin):
     def __init__(self):
         super().__init__()
@@ -390,8 +399,11 @@ class MainWindow(QMainWindow, WindowMixin):
         #self.connections.bind('database_changed', self.f('db_name').setText)
         self.connections.bind('errors', self.error_handler)
 
-        if self.state.active_connection_index < len(self.state.connections):
-            self.connections.active_connection_index = self.state.active_connection_index
+        index = self.state.active_connection_index
+        if index is not None and index >= len(self.state.connections):
+            index = None
+
+        self.connections.active_connection_index = index
 
         self.tree_view_objects.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree_view_objects.customContextMenuRequested.connect(
