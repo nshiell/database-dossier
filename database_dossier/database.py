@@ -61,6 +61,9 @@ class ConnectionList(list):
 
     @property
     def active_connection(self):
+        if self._active_connection_index is None:
+            return None
+
         return self[self._active_connection_index]
 
 
