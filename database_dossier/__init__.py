@@ -476,6 +476,7 @@ class MainWindow(QMainWindow, WindowMixin):
         window.menu('action_copy_cell' + s, self.copy_cell)
         window.menu('action_copy_item_name' + s, self.copy_name)
         window.menu('action_connection_remove' + s, self.remove_connection)
+        window.menu('action_refresh' + s, lambda: self.connections.refresh())
 
         window.menu('action_help' + s, HelpDialog(window).show)
 
