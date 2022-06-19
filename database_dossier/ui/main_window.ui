@@ -21,18 +21,18 @@
        <enum>Qt::Vertical</enum>
       </property>
       <widget class="QTabWidget" name="table_query">
-       <property name="styleSheet">
-        <string notr="true">b</string>
-       </property>
        <property name="tabPosition">
         <enum>QTabWidget::West</enum>
        </property>
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="tab">
+       <widget class="QWidget" name="tab_editor">
         <property name="styleSheet">
-         <string notr="true">background-color: black</string>
+         <string notr="true">QWidget#tab_editor {
+background-color: black;
+border: 1px solid green;
+}</string>
         </property>
         <attribute name="title">
          <string>SQL</string>
@@ -46,10 +46,20 @@
               <bool>false</bool>
              </property>
              <property name="styleSheet">
-              <string notr="true">background-color: black;
-font-size: 14pt;
+              <string notr="true">QTextEdit {
+border: 0;
+background-color: black;
+border: 0;
+background: black;
+font-size: 10pt;
 font-family: 'Hack', 'Courier New', 'Ubuntu Mono';
-border: 1px solid black</string>
+font-weight: normal;
+font-style: normal;
+}
+
+QScrollBar {
+background: none;
+}</string>
              </property>
              <property name="undoRedoEnabled">
               <bool>true</bool>
@@ -66,9 +76,6 @@ border: 1px solid black</string>
                <property name="autoFillBackground">
                 <bool>false</bool>
                </property>
-               <property name="styleSheet">
-                <string notr="true">color: white; background-color: #444444; font-weight: bold</string>
-               </property>
                <property name="text">
                 <string>1</string>
                </property>
@@ -79,9 +86,6 @@ border: 1px solid black</string>
              </item>
              <item>
               <widget class="QPushButton" name="execute_2">
-               <property name="styleSheet">
-                <string notr="true">color: white; background-color: #444444; font-weight: bold</string>
-               </property>
                <property name="text">
                 <string>2</string>
                </property>
@@ -92,9 +96,6 @@ border: 1px solid black</string>
              </item>
              <item>
               <widget class="QPushButton" name="execute_3">
-               <property name="styleSheet">
-                <string notr="true">color: white; background-color: #444444; font-weight: bold</string>
-               </property>
                <property name="text">
                 <string>3</string>
                </property>
@@ -649,7 +650,8 @@ font-family: 'Ubuntu Mono', 'Courier New';</string>
   </action>
   <action name="action_donate">
    <property name="icon">
-    <iconset theme="love"/>
+    <iconset theme="love">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Donate</string>

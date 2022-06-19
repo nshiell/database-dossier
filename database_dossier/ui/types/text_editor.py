@@ -56,19 +56,41 @@ class TextEditor(QObject):
 
     def __init__(self, parent, q_text, **kwargs):
         super().__init__(parent)
-        self.options = kwargs
         self.q_text = q_text
-        self.formatter = create_formatter(self.q_text.styleSheet())
+        self.update_formatter_style()
         self.doc = TextDocument(parent)
         self.q_text.setDocument(self.doc)
         self.is_processing_highlighting = False
+        self.event_bindings = {}
         q_text.cursorPositionChanged.connect(self.cursor_moved)
         q_text.textChanged.connect(self.query_changed)
         q_text.setContextMenuPolicy(Qt.CustomContextMenu)
         q_text.customContextMenuRequested.connect(lambda:
-            kwargs['context_menu'].exec_(QCursor.pos())
+            self.trigger('context_menu', (QCursor.pos(),))
         )
         q_text.installEventFilter(self)
+
+
+    def update_formatter_style(self):
+        style = self.q_text.styleSheet()
+        if 'QTextEdit' in style:
+            style = (style.split('QTextEdit')[1].
+                split('}')[0].replace('{', '').strip()
+            )
+
+        self.formatter = create_formatter(style)
+
+
+    def trigger(self, event_name, args=None):
+        if event_name in self.event_bindings:
+            if args is None:
+                self.event_bindings[event_name]()
+            else:
+                self.event_bindings[event_name](*args)
+
+
+    def bind(self, event_name, event_callback):
+        self.event_bindings[event_name] = event_callback
 
 
     @property
@@ -83,12 +105,12 @@ class TextEditor(QObject):
 
 
     def font_point_size_increase(self):
-        if self.font_point_size < 90:
+        if self.font_point_size < 40:
             self.font_point_size+= 1
 
 
     def font_point_size_decrease(self):
-        if self.font_point_size > 4:
+        if self.font_point_size > 6:
             self.font_point_size-= 1
 
 
@@ -199,16 +221,21 @@ class TextEditor(QObject):
 
         for (property_name, value, quote) in changes:
             if property_name in stylesheet:
-                lines = [x for x in lines if property_name not in x]
-    
-            if quote:
-                value = "'" + value + "'"
-    
-            lines.append(property_name + ': ' + value + ';')
+                if quote:
+                    value = "'" + value + "'"
+
+                lines_new = []
+                for line in lines:
+                    if property_name in line:
+                        lines_new.append(property_name + ': ' + value + ';')
+                    else:
+                        lines_new.append(line)
+
+                lines = lines_new
 
         stylesheet = '\n'.join(lines)
         self.q_text.setStyleSheet(stylesheet)
-        self.formatter = create_formatter(stylesheet)
+        self.update_formatter_style()
         self.query_changed()
 
 
@@ -216,25 +243,21 @@ class TextEditor(QObject):
         cursor = self.q_text.textCursor()
         self.doc.undo(cursor)
         self.q_text.setTextCursor(cursor)
+        self.trigger('updated', (self.doc.can_undo(), self.doc.can_redo()))
 
 
     def redo(self):
         cursor = self.q_text.textCursor()
         self.doc.redo(cursor)
         self.q_text.setTextCursor(cursor)
-
-
-    def update_undo_redo_menus(self):
-        if 'update_cb' in self.options:
-            self.options['update_cb'](self.doc.can_undo(), self.doc.can_redo())
+        self.trigger('updated', (self.doc.can_undo(), self.doc.can_redo()))
 
 
     def cursor_moved(self):
-        if 'text_cursor_moved_cb' in self.options:
-            cursor = self.q_text.textCursor()
-            position = cursor.position()
-            text = self.q_text.toPlainText()[:position]
-            self.options['text_cursor_moved_cb'](len(text.split("\n")))
+        cursor = self.q_text.textCursor()
+        position = cursor.position()
+        text = self.q_text.toPlainText()[:position]
+        self.trigger('text_cursor_moved', (len(text.split("\n")),))
 
 
     def query_changed(self):
@@ -273,11 +296,15 @@ class TextEditor(QObject):
             cursor.setPosition(position)
             self.q_text.setTextCursor(cursor)
 
-        self.update_undo_redo_menus()
+        self.trigger('updated', (self.doc.can_undo(), self.doc.can_redo()))
 
 
     def eventFilter(self, obj, event):
-        if event.type() == QEvent.KeyPress:
+        if event.type() == QEvent.FocusIn:
+            self.trigger('focus_in')
+        elif event.type() == QEvent.FocusOut:
+            self.trigger('focus_out')
+        elif event.type() == QEvent.KeyPress:
             if event.matches(QKeySequence.Undo):
                 self.undo()
                 return True

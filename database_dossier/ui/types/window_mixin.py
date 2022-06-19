@@ -62,8 +62,8 @@ class WindowMixin:
 
     def load_xml(self, xml_file):
         # If this file is moved this line will need to change
-        ui_dir = str(Path(__file__).resolve().parent.parent) + '/'
-        self.xml_file = ui_dir + xml_file
+        ui_dir = str(Path(__file__).resolve().parent.parent)
+        self.xml_file = os.path.join(ui_dir, xml_file)
 
         uic.loadUi(self.xml_file, self)
 
@@ -123,6 +123,14 @@ class WindowMixin:
         return self._artwork_dir
 
 
+    @property
+    def is_dark(self):
+        color = self.palette().color(QPalette.Background)
+        average = (color.red() + color.green() + color.blue()) / 3
+
+        return average <= 128
+
+
     def set_window_icon_from_artwork(self, file_name):
         self.setWindowIcon(QIcon(os.path.join(self.artwork_dir, file_name)))
 
@@ -136,3 +144,29 @@ class WindowMixin:
             self._extra_ui = extra
 
         return self._extra_ui
+
+
+    def change_style(self, element, changes):
+        stylesheet = element.styleSheet()
+
+        if len(stylesheet) and stylesheet[-1] != ';':
+            stylesheet+= ';'
+
+        lines = stylesheet.split('\n')
+
+        for (property_name, value, quote) in changes:
+            if property_name in stylesheet:
+                if quote:
+                    value = "'" + value + "'"
+
+                #lines = [x for x in lines if property_name not in x]
+                lines_new = []
+                for i, line in enumerate(lines):
+                    if property_name in line:
+                        lines_new.append(property_name + ': ' + value + ';')
+                    else:
+                        lines_new.append(line)
+
+                lines = lines_new
+
+        element.setStyleSheet('\n'.join(lines))

@@ -26,6 +26,16 @@ class ConnectionList(list):
         self.last_database_item = None
 
 
+    @property
+    def is_dark(self):
+        pass
+
+
+    @is_dark.setter
+    def is_dark(self, is_dark):
+        TreeItem.colors['selected'] = 'white' if is_dark else 'black'
+
+
     def refresh(self):
         remove_connection_items(self)
         self.draw_state()
@@ -331,7 +341,7 @@ class TreeItem(QStandardItem, FontGettersSetters):
     colors = {
         'broken'   : 'red',
         'normal'   : 'grey',
-        'selected' : 'white'
+        'selected' : None # Set is runtime so it can work in dar/light themes
     }
 
     def __init__(self, parent=None, **kwargs):

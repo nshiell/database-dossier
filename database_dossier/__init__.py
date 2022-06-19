@@ -253,14 +253,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.text_edit_sql.setTextCursor(text_cursor)
 
 
-    @property
-    def is_dark(self):
-        color = self.palette().color(QPalette.Background)
-        average = (color.red() + color.green() + color.blue()) / 3
-
-        return average <= 128
-
-
     def flash_tab(self, tab_index):
         q_tab_bar = self.tab_result_sets.tabBar()
         old_color = q_tab_bar.tabTextColor(tab_index)
@@ -393,6 +385,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.tree_view_objects
         )
 
+        self.connections.is_dark = self.is_dark
         self.connections.bind('focus_changed', lambda names: self.tree_select_changed(**names))
         self.connections.bind('log_line', self.log_line)
         #self.connections.bind('connection_changed', self.f('connection_indicator').setText)
@@ -434,14 +427,26 @@ class MainWindow(QMainWindow, WindowMixin):
             self.extra_ui.action_undo_extra.setEnabled(can_undo)
             self.extra_ui.action_redo_extra.setEnabled(can_redo)
 
+        self.text_editor = TextEditor(self, self.text_edit_sql)
 
-        def text_cursor_moved_cb(line_no):
+        context_menu = self.extra_ui.get_menu_action('editor')
+
+        self.text_editor.bind('context_menu', lambda pos:
+            context_menu.exec_(pos)
+        )
+
+        self.text_editor.bind('text_cursor_moved', lambda line_no:
             self.f('line_no').setText('Line: ' + str(line_no))
+        )
 
-        self.text_editor = TextEditor(self, self.text_edit_sql,
-            update_cb=update_cb,
-            text_cursor_moved_cb=text_cursor_moved_cb,
-            context_menu=self.extra_ui.get_menu_action('editor')
+        self.text_editor.bind('updated', update_cb)
+
+        border_color = self.palette().color(QPalette.Link).name()
+        self.text_editor.bind('focus_in', lambda:
+            self.change_style(self.tab_editor, [('border', '1px solid ' + border_color, False)])
+        )
+        self.text_editor.bind('focus_out', lambda:
+            self.change_style(self.tab_editor, [('border', '1px solid black', False)])
         )
 
         self.bind_menu(self.extra_ui, '_extra')
@@ -503,6 +508,9 @@ class MainWindow(QMainWindow, WindowMixin):
         new_font, valid = QFontDialog.getFont(QFont(old_font))
         if valid:
             self.text_editor.font = new_font
+
+
+
 
 
     def setup(self):
