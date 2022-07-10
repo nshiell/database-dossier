@@ -155,8 +155,8 @@ class ConnectionList(list):
         if self.active_connection['broken']:
             raise QueryDatabaseException('No connection')
 
-        cursor = self.active_connection['db_connection'].cursor()
         try:
+            cursor = self.active_connection['db_connection'].cursor()
             cursor.execute(sql)
         except mysql.connector.errors.Error as e:
             raise QueryDatabaseException(str(e))
