@@ -144,6 +144,12 @@ class InfoDialog(QDialog, WindowMixin):
                 selection_model.Select
             )
             self.last_topic = topic
+        elif parts[1] == 'is-dark':
+            javascript = "hostClient.response(%d, %s)" % (
+                int(parts[0]),
+                json.dumps(self.parent().is_dark)
+            )
+            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
 
 
     def get_topic_and_child_pos(self, name):
