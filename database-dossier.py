@@ -1,7 +1,6 @@
 #! /usr/bin/python3
 """
-    Blue Log Viewer - Log files in a GUI
-    This program is not related to Apache or the Apache Software Foundation in any way
+    Database Dossier - A User Interface for your databases
     Copyright (C) 2022  Nicholas Shiell
 
     This program is free software: you can redistribute it and/or modify
@@ -13,9 +12,6 @@
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import sys, signal
