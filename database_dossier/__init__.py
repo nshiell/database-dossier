@@ -245,6 +245,28 @@ class ConnectionDialog(QDialog, WindowMixin):
 
 
 class MainWindow(QMainWindow, WindowMixin):
+    table_views = [
+        'table_view_data',
+        'table_view_schema',
+        'table_view_result_set_1',
+        'table_view_result_set_2',
+        'table_view_result_set_3'
+    ]
+
+
+    @property
+    def record_set_colors(self):
+        self._record_set_colors = {
+            'error'  : QVariant(QColor(Qt.red)),
+            'number' : QVariant(QColor(
+                Qt.green if self.is_dark else Qt.darkGreen
+            )),
+            'date'   : QVariant(QColor(Qt.blue))
+        }
+
+        return self._record_set_colors
+
+
     def __init__(self):
         super().__init__()
 
@@ -256,10 +278,11 @@ class MainWindow(QMainWindow, WindowMixin):
         self.connection_dialog = ConnectionDialog(self)
         self.setup_text_editor()
         self.setup()
+        self._record_set_colors = None
 
 
     def setup_result_set(self, name):
-        self.result_sets[name] = TableModel()
+        self.result_sets[name] = TableModel(self.record_set_colors)
         table_view = self.f('table_view_' + name)
         table_view.setModel(self.result_sets[name])
         table_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -280,15 +303,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def copy_cell(self):
-        table_views = [
-            'table_view_data',
-            'table_view_schema',
-            'table_view_result_set_1',
-            'table_view_result_set_2',
-            'table_view_result_set_3'
-        ]
-
-        table_view = self.f(table_views[self.tab_result_sets.currentIndex()])
+        table_view = self.f(
+            self.table_views[self.tab_result_sets.currentIndex()]
+        )
 
         QApplication.instance().clipboard().setText(str(
             table_view.currentIndex().data()
@@ -457,6 +474,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def show_table(self, table_name):
+        max_records = 1000
         table_name_clean = repr(table_name)[1:-1]
 
         self.execute_update_table_model(
@@ -466,10 +484,15 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.execute_update_table_model(
             self.result_sets['data'],
-            "SELECT * FROM %s LIMIT %d" % (table_name_clean, 1000)
+            "SELECT * FROM %s LIMIT %d" % (table_name_clean, max_records)
         )
 
-        self.tab_result_sets.setTabText(0, 'Data: ' + table_name)
+        self.tab_result_sets.setTabText(0, 'Data: %s (%d)' % (
+            table_name,
+            max_records
+        ))
+
+        self.tab_result_sets.setCurrentIndex(0)
 
 
     def error_handler(self, errors):
@@ -622,6 +645,14 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def setup(self):
+        for table_view in self.table_views:
+            self.f(table_view).horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeToContents
+            )
+            self.f(table_view).verticalHeader().setSectionResizeMode(
+                QHeaderView.ResizeToContents
+            )
+
         self.add_statusbar()
         self.bind_menu()
         self.bind_menu(self.extra_ui, '_result_set')
