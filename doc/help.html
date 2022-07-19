@@ -42,6 +42,64 @@ ul, ol {
 }
 </style>
 
+<script src="./.js/jquery.js"></script>
+<script src="./.js/waypoints.js"></script>
+
+<script>
+/* jshint asi: true */
+
+class HostClient {
+    constructor  () {
+        this.queryIndex = 0
+        this.callbacks = {}
+    }
+
+    query (name, data, callback) {
+        if (!window.host) {
+            return null
+        }
+
+        if (callback) {
+            this.callbacks[this.queryIndex + ''] = callback
+        }
+        host.query(this.queryIndex + ':' + name + ':' + JSON.stringify(data))
+
+        this.queryIndex++
+    }
+
+    response (index, jsonText) {
+        if (!this.callbacks[index]) {
+            $('body').html('fail' + $('body').html())
+            return null
+        }
+
+        this.callbacks[index](jsonText)
+        delete this.callbacks[index]
+    }
+
+    event (name, jsonText) {
+        if (!this.callbacks[name]) {
+            $('body').html('fail' + $('body').html())
+            return null
+        }
+
+        this.callbacks[name](JSON.parse(jsonText))
+    }
+
+    bind (name, callback) {
+        this.callbacks[name] = callback
+    }
+}
+
+const hostClient = new HostClient()
+
+$(function() {
+    hostClient.query('config-path', null, function (path) {
+        $('.config-path').html(path)
+    })
+})
+</script>
+
 </head>
 <body>
 
