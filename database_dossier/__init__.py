@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
@@ -620,9 +621,6 @@ class MainWindow(QMainWindow, WindowMixin):
             self.text_editor.font = new_font
 
 
-
-
-
     def setup(self):
         self.add_statusbar()
         self.bind_menu()
@@ -651,6 +649,31 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Must be last
         self.setup_state()
+
+
+    def show(self):
+        super().show()
+        self.show_is_old()
+
+
+    def show_is_old(self):
+        young_months = 6
+        past_date = datetime(2022, 7, 1)
+        age_months = ((datetime.now() - past_date).days) / 30
+        if age_months > young_months:
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Information)
+
+            box.setText(
+                "This version of Database Dossier is getting a bit old."
+                + '\n'
+                + 'It is ' + str(int(age_months)) + ' months old!'
+                + '\n'
+                + "Why not see if there is newer version?"
+            )
+            box.setWindowTitle("Database Dossier")
+            box.setStandardButtons(QMessageBox.Ok)
+            box.exec()
 
 
     def closeEvent(self, event):
