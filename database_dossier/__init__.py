@@ -184,6 +184,22 @@ class HelpDialog(InfoDialog):
         self.page = 'help.html'
 
 
+class AboutDialog(InfoDialog):
+    def __init__(self, main_win):
+        super().__init__(main_win)
+        self.page = 'about.html'
+        self.setFixedSize(QSize(self.width(), self.height()))
+        self.document_structure.hide()
+
+
+class DonationDialog(InfoDialog):
+    def __init__(self, main_win):
+        super().__init__(main_win)
+        self.page = 'donate.html'
+        self.setFixedSize(QSize(self.width(), self.height()))
+        self.document_structure.hide()
+
+
 class ConnectionDialog(QDialog, WindowMixin):
     def __init__(self, main_win):
         super().__init__(main_win)
@@ -576,6 +592,8 @@ class MainWindow(QMainWindow, WindowMixin):
         window.menu('action_refresh' + s, lambda: self.connections.refresh())
 
         window.menu('action_help' + s, HelpDialog(window).show)
+        window.menu('action_donate' + s, DonationDialog(window).show)
+        window.menu('action_about' + s, AboutDialog(window).show)
 
 
     def remove_connection(self):
