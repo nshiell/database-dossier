@@ -6,21 +6,49 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>686</width>
-    <height>460</height>
+    <width>761</width>
+    <height>439</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Help— Database Dossier</string>
+   <string>Help — Database Dossier</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
    <item row="0" column="0">
-    <widget class="QWebView" name="web_view">
-     <property name="url">
-      <url>
-       <string>about:blank</string>
-      </url>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
+     <widget class="QTreeView" name="document_structure">
+      <property name="maximumSize">
+       <size>
+        <width>250</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="headerHidden">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QWebView" name="web_view">
+      <property name="url">
+       <url>
+        <string>about:blank</string>
+       </url>
+      </property>
+     </widget>
     </widget>
    </item>
   </layout>
