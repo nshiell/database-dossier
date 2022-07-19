@@ -89,13 +89,19 @@ class HostClient {
     bind (name, callback) {
         this.callbacks[name] = callback
     }
+
+    ready (callback) {
+        setTimeout(callback, 10)
+    }
 }
 
 const hostClient = new HostClient()
 
 $(function() {
-    hostClient.query('config-path', null, function (path) {
-        $('.config-path').html(path)
+    hostClient.ready(function () {
+        hostClient.query('config-path', null, function (path) {
+            $('.config-path').html(path)
+        })
     })
 
     const documentStructure = []
@@ -143,6 +149,11 @@ $(function() {
     $('a[href^="#"]').click(function (e) {
         scrollTo($.attr(this, 'href').substr(1))
         e.preventDefault()
+    })
+
+    $('a[href*="://"]').click(function (event) {
+        event.preventDefault()
+        hostClient.query('link', this.href)
     })
 })
 </script>

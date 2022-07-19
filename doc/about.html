@@ -40,8 +40,8 @@ class HostClient {
         if (callback) {
             this.callbacks[this.queryIndex + ''] = callback
         }
-        host.query(this.queryIndex + ':' + name + ':' + JSON.stringify(data))
 
+        host.query(this.queryIndex + ':' + name + ':' + JSON.stringify(data))
         this.queryIndex++
     }
 
@@ -67,15 +67,26 @@ class HostClient {
     bind (name, callback) {
         this.callbacks[name] = callback
     }
+
+    ready (callback) {
+        setTimeout(callback, 10)
+    }
 }
 
 const hostClient = new HostClient()
 
 $(function() {
-    hostClient.query('is-dark', null, function (isDark) {
-        if (isDark) {
-            $('body').addClass('dark')
-        }
+    hostClient.ready(function () {
+        hostClient.query('is-dark', null, function (isDark) {
+            if (isDark) {
+                $('body').addClass('dark')
+            }
+        })
+    })
+    
+    $('a[href*="://"]').click(function (event) {
+        event.preventDefault()
+        hostClient.query('link', this.href)
     })
 })
 </script>

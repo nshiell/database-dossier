@@ -17,7 +17,7 @@
 """
 
 from datetime import datetime
-import json
+import json, webbrowser
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
 from PyQt5.QtGui import *
@@ -121,7 +121,6 @@ class InfoDialog(QDialog, WindowMixin):
 
         parts = indexUriData.split(':')
         offset = len(parts[0]) + len(parts[1]) + 2
-
         if parts[1] == 'config-path':
             javascript = "hostClient.response(%d, %s)" % (
                 int(parts[0]),
@@ -169,6 +168,8 @@ class InfoDialog(QDialog, WindowMixin):
                 json.dumps(self.parent().is_dark)
             )
             self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+        elif parts[1] == 'link':
+            webbrowser.get().open_new(json.loads(indexUriData[offset:]))
 
 
     def get_topic_and_child_pos(self, name):
