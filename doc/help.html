@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Help</title>
+
+</head>
+<body>
+
+<div class="topic">
+    <h1><a name="introduction">Welcome to Database Dossier</a></h1>
+    <p>Database Dossier is a free database user interface program, you can use it for browsing and querying your databases.
+        <br />At present it can be used for accessing MariaDB and MySql database servers.</p>
+</div>
+
+<div class="topic">
+    <h1><a name="donations">Donations</a></h1>
+    <p>Database Dossier is a beautiful free open source computer program.
+        <br />If you are able to donate a small amount to the project - then new features can be added to make it even more awesome and useful for everyone.
+        <br /><a href="https://www.patreon.com/nshiell">https://www.patreon.com/nshiell</a>
+    </p>
+</div>
+
+<div class="topic">
+    <h1><a name="user-interface">User interface</a></h1>
+    <p>There are four main parts to the user interface.
+        <ol>
+            <li><a href="#record-sets">The Record Sets</a></li>
+            <li><a href="#tree">The Tree</a></li>
+            <li><a href="#sql-editor">The SQL Editor</a></li>
+            <li><a href="#log">The Log</a></li>
+            <li><a href="#connection">Connection</a></li>
+        </ol>
+    </p>
+
+    <h2><a name="record-sets">The Record Sets</a></h2>
+    <p>There are five tabs on the lower half of the window:
+        <ul>
+            <li>The first tab will show the first 1000 rows from the last table selected from the tree</li>
+            <li>The second tab will show the schema from last table selected from the tree</li>
+            <li>The third tab labelled &ldquo;1&rdquo; will show the result of the last query executed by pressing &ldquo;1&rdquo;</li>
+            <li>The fourth tab labelled &ldquo;2&rdquo; will show the result of the last query executed by pressing &ldquo;2&rdquo;</li>
+            <li>The fifth tab labelled &ldquo;3&rdquo; will show the result of the last query executed by pressing &ldquo;3&rdquo;</li>
+        </ul>
+    </p>
+
+    <p>If there is an error executing a query the error message will be displayed in red coloured text.</p>
+
+    <h2><a name="tree">The Tree</a></h2>
+    <p>The tree is shown to the left of the record sets,
+        <br />it shows all the connections in large text, in the form <i>username@host:port</i>
+        <br />clicking on a connection shows all the databases that that current connection provides access to
+        <br />clicking on a database will show all the tables in that database
+        <br />and clicking a table shows the first 1000 records in the &ldquo;data&rdquo; tab and the schema in the next tab.
+    </p>
+
+    <h2><a name="sql-editor">The SQL editor</a></h2>
+    <p>This is a free place to write any SQL code that you can execute against any connection.
+        <br />It is a good idea to keep an eye on the statusbar at the bottom as it shows which connection is active and which database is being used.
+        <br />All queries must be terminated with a semicolon.
+        <br />If you press the button labelled &ldquo;1&rdquo; then the SQL query under the cursor
+        <br />(the text between the preceding semicolon and the succeeding semicolon) will be executed and the result will be visible in the tab labelled &ldquo;1&rdquo;.
+        <br />The same goes for the buttons &ldquo;2&rdquo; and &ldquo;3&rdquo; with their respective result set tabs.
+        <br />The current query will also be selected when executing, so you can see what was run.
+    </p>
+
+    <h2><a name="log">The Log</a></h2>
+    <p>The log can viewed by clicking the &ldquo;Log&rdquo; tab.
+        <br />It will list all the queries run since the program was started <i>(with the most recent at the bottom of the list)</i>.
+        <br />It will also list the queries that where run as you clicked around the user interface.
+    </p>
+
+    <h2><a name="connection">Connection to Servers</a></h2>
+    <p>To create a connection, go to the menu bar and select File > Connect
+        <br />Fill in the username, port and password
+        <br />The button labelled &ldquo;test&rdquo;, will try and form a connection
+        <br />The button labelled &ldquo;OK&rdquo;, will try and form a connection and list the databases in the tree
+        <br />Please Note: To connect to remote servers using an SSH tunnel it is a good idea to do a search for &ldquo;ssh port forward mysql&rdquo; using your favourite search engine.
+    </p>
+</div>
+
+<div class="topic">
+    <h1><a name="storage">Storage</a></h1>
+    <p>When you finish using Database Dossier and close the program, the program&rsquo;s state is stored and reused next time you start the program.
+        <br />There is a configuration JSON file stored at <b class="config-path"></b> that stores the connections and an SQL file that stores the text in the SQL editor.
+        <br />Please note: passwords are kept in plain text in the JSON file.
+    </p>
+</div>
+
+</body>
+</html>
