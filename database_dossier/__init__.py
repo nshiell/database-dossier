@@ -103,6 +103,13 @@ class InfoDialog(QDialog, WindowMixin):
         parts = indexUriData.split(':')
         offset = len(parts[0]) + len(parts[1]) + 2
 
+        if parts[1] == 'config-path':
+            javascript = "hostClient.response(%d, %s)" % (
+                int(parts[0]),
+                json.dumps(user_config_file_path)
+            )
+            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+
 
     def get_topic_and_child_pos(self, name):
         if not self.document_structure_data:
