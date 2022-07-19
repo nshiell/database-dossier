@@ -109,6 +109,16 @@ class InfoDialog(QDialog, WindowMixin):
                 json.dumps(user_config_file_path)
             )
             self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+        elif parts[1] == 'document-structure':
+            self.document_structure_data = json.loads(indexUriData[offset:])
+            model = self.document_structure.model()
+
+            for topic in self.document_structure_data:
+                q_topic = QStandardItem(topic['text'])
+                for child in topic['children']:
+                    q_child = QStandardItem(child['text'])
+                    q_topic.appendRow(q_child)
+                model.appendRow(q_topic)
 
 
     def get_topic_and_child_pos(self, name):
