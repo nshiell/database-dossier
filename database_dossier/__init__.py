@@ -1,3 +1,4 @@
+import json
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
 from PyQt5.QtGui import *
@@ -47,6 +48,14 @@ class InfoDialog(QDialog, WindowMixin):
         self._doc_dir = None
         self.setup = False
         self.page = None
+        self.document_structure_data = None
+        self.last_topic = None
+        self.load_ui()
+
+
+    def load_ui(self):
+        self.resize(QSize(600, 300))
+        self.load_xml('help.ui')
 
     def show(self):
         """
@@ -54,25 +63,60 @@ class InfoDialog(QDialog, WindowMixin):
         do it lazily here - rather than on __init__
         """
         if not self.setup:
-            self.resize(QSize(600, 300))
-            self.load_xml('help.ui')
             self.web_view.setUrl(
                 QUrl('file://' + self.doc_dir + '/' + self.page)
             )
+            self.document_structure.setModel(QStandardItemModel())
             self.web_view.loadFinished.connect(self.load_finished)
+            self.document_structure.clicked.connect(self.tree_click)
             self.setup = True
 
         super().show()
 
 
+    def tree_click(self, model_index):
+        row = model_index.row()
+
+        lst = self.document_structure_data
+        if model_index.parent().isValid():
+            lst = lst[model_index.parent().row()]['children']
+
+        if 'name' in lst[row]:
+            javascript = "hostClient.event('%s', '%s')" % (
+                'topic-scrolled-activated',
+                json.dumps(lst[row]['name'])
+            )
+            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+
+
     def load_finished(self, is_ok):
-        print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
-        self.web_view.page().mainFrame().addToJavaScriptWindowObject('app', self)
+        #print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
+        self.web_view.page().mainFrame().addToJavaScriptWindowObject('host', self)
 
 
     @pyqtSlot(str)
-    def response(self, value):
-        print(value)
+    def query(self, indexUriData):
+        #break_pos = value.find(':')
+        #index = value[0:break_pos]
+        #json_text = json.loads(value[break_pos + 1:])
+
+        parts = indexUriData.split(':')
+        offset = len(parts[0]) + len(parts[1]) + 2
+
+
+    def get_topic_and_child_pos(self, name):
+        if not self.document_structure_data:
+            return (None, None)
+
+        for i, topic in enumerate(self.document_structure_data):
+            if topic['name'] == name:
+                return (i, None)
+
+            for j, child in enumerate(topic['children']):
+                if child['name'] == name:
+                    return (i, j)
+
+        return (None, None)
 
 
     @property
