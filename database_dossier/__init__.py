@@ -119,6 +119,31 @@ class InfoDialog(QDialog, WindowMixin):
                     q_child = QStandardItem(child['text'])
                     q_topic.appendRow(q_child)
                 model.appendRow(q_topic)
+        elif parts[1] == 'topic-scrolled-to':
+            model = self.document_structure.model()
+            selection_model = self.document_structure.selectionModel()
+            topic = json.loads(indexUriData[offset:])
+
+            if self.last_topic == topic:
+                return None
+
+            selection_model.clearSelection()
+
+            pos = self.get_topic_and_child_pos(topic)
+            if pos[0] is None:
+                return None
+
+            item = model.item(pos[0])
+            self.document_structure.setExpanded(model.indexFromItem(item), True)
+
+            if pos[1] is not None:
+                item = item.child(pos[1])
+
+            selection_model.select(
+                model.indexFromItem(item),
+                selection_model.Select
+            )
+            self.last_topic = topic
 
 
     def get_topic_and_child_pos(self, name):
