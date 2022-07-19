@@ -132,7 +132,8 @@ background: none;
            </property>
            <property name="styleSheet">
             <string notr="true">font-size: 8pt;
-font-family: 'Ubuntu Mono', 'Courier New';</string>
+font-family: 'Ubuntu Mono', 'Courier New';
+background-color: black;</string>
            </property>
            <property name="readOnly">
             <bool>true</bool>
