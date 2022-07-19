@@ -97,6 +97,53 @@ $(function() {
     hostClient.query('config-path', null, function (path) {
         $('.config-path').html(path)
     })
+
+    const documentStructure = []
+    let $currentH1 = null
+    $('.topic').each(function () {
+        const $topic = $(this)
+        $('h1, h2', $topic).each(function () {
+            const $h1H2 = $(this)
+            const $a = $('a', $h1H2)
+            const headerTag = $h1H2.prop('tagName')
+            const name = $a.attr('name')
+
+            if (!name) {
+                return;
+            }
+
+            const $item = {'name': name, text: $a.text(), children: []}
+
+            if (headerTag == 'H1') {
+                documentStructure.push($item)
+                $currentH1 = $item
+            } else if ($currentH1) {
+                $currentH1.children.push($item)
+            }
+        })
+    })
+
+    hostClient.query('document-structure', documentStructure)
+
+    function scrollTo(name) {
+        const selector = '[name="' + name + '"]'
+        $('html, body').animate({
+            scrollTop: $(selector).offset().top
+        }, 500);
+    }
+
+    hostClient.bind('topic-scrolled-activated', function (name) {
+        scrollTo(name)
+    })
+
+    $('h1, h2').waypoint(function() {
+        hostClient.query('topic-scrolled-to', $('a', this.element).attr('name'))
+    })
+
+    $('a[href^="#"]').click(function (e) {
+        scrollTo($.attr(this, 'href').substr(1))
+        e.preventDefault()
+    })
 })
 </script>
 
