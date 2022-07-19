@@ -56,9 +56,22 @@ class InfoDialog(QDialog, WindowMixin):
         if not self.setup:
             self.resize(QSize(600, 300))
             self.load_xml('help.ui')
+            print(self.doc_dir.replace('\\', '/') + '/' + self.page)
+
             self.web_view.setUrl(
-                QUrl('file://' + self.doc_dir + '/' + self.page)
+                QUrl('file:///' + self.doc_dir.replace('\\', '/') + '/' + self.page)
             )
+            
+            self.web_view.page().titleChanged.connect(lambda t: print(t))
+            
+            '''
+            qwebchannel_js = QFile('://qtwebchannel/qwebchannel.js')
+            if qwebchannel_js.open(QFile.ReadOnly):
+                source = bytes(qwebchannel_js.readAll()).decode('utf-8')
+                self.web_view.page().runJavaScript(source)
+                qwebchannel_js.close()
+            '''
+
             self.web_view.loadFinished.connect(self.load_finished)
             self.setup = True
 
@@ -66,8 +79,18 @@ class InfoDialog(QDialog, WindowMixin):
 
 
     def load_finished(self, is_ok):
-        print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
-        self.web_view.page().mainFrame().addToJavaScriptWindowObject('app', self)
+        from PyQt5.QtWebChannel import QWebChannel
+        #from PyQt5.QtWebEngineWidgets import QWebEngineScript
+        #from PyQt5.QtCore import QFile
+
+        channel = QWebChannel()
+        self.web_view.page().setWebChannel(channel)
+        print(self.web_view.page().runJavaScript("from_app(7)"))
+        #print(self.web_view.page().runJavaScript("ddd()"))
+        channel.registerObject('app', self)
+
+#        print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
+#        self.web_view.page().mainFrame().addToJavaScriptWindowObject('app', self)
 
 
     @pyqtSlot(str)
