@@ -1,3 +1,23 @@
+"""
+    Database Dossier - A User Interface for your databases
+    Copyright (C) 2022  Nicholas Shiell
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+from datetime import datetime
+import json, webbrowser
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
 from PyQt5.QtGui import *
@@ -47,6 +67,14 @@ class InfoDialog(QDialog, WindowMixin):
         self._doc_dir = None
         self.setup = False
         self.page = None
+        self.document_structure_data = None
+        self.last_topic = None
+        self.load_ui()
+
+
+    def load_ui(self):
+        self.resize(QSize(600, 300))
+        self.load_xml('help.ui')
 
     def show(self):
         """
@@ -54,48 +82,109 @@ class InfoDialog(QDialog, WindowMixin):
         do it lazily here - rather than on __init__
         """
         if not self.setup:
-            self.resize(QSize(600, 300))
-            self.load_xml('help.ui')
-            print(self.doc_dir.replace('\\', '/') + '/' + self.page)
-
             self.web_view.setUrl(
-                QUrl('file:///' + self.doc_dir.replace('\\', '/') + '/' + self.page)
+                QUrl('file://' + self.doc_dir + '/' + self.page)
             )
-            
-            self.web_view.page().titleChanged.connect(lambda t: print(t))
-            
-            '''
-            qwebchannel_js = QFile('://qtwebchannel/qwebchannel.js')
-            if qwebchannel_js.open(QFile.ReadOnly):
-                source = bytes(qwebchannel_js.readAll()).decode('utf-8')
-                self.web_view.page().runJavaScript(source)
-                qwebchannel_js.close()
-            '''
-
+            self.document_structure.setModel(QStandardItemModel())
             self.web_view.loadFinished.connect(self.load_finished)
+            self.document_structure.clicked.connect(self.tree_click)
             self.setup = True
 
         super().show()
 
 
+    def tree_click(self, model_index):
+        row = model_index.row()
+
+        lst = self.document_structure_data
+        if model_index.parent().isValid():
+            lst = lst[model_index.parent().row()]['children']
+
+        if 'name' in lst[row]:
+            javascript = "hostClient.event('%s', '%s')" % (
+                'topic-scrolled-activated',
+                json.dumps(lst[row]['name'])
+            )
+            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+
+
     def load_finished(self, is_ok):
-        from PyQt5.QtWebChannel import QWebChannel
-        #from PyQt5.QtWebEngineWidgets import QWebEngineScript
-        #from PyQt5.QtCore import QFile
-
-        channel = QWebChannel()
-        self.web_view.page().setWebChannel(channel)
-        print(self.web_view.page().runJavaScript("from_app(7)"))
-        #print(self.web_view.page().runJavaScript("ddd()"))
-        channel.registerObject('app', self)
-
-#        print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
-#        self.web_view.page().mainFrame().addToJavaScriptWindowObject('app', self)
+        #print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
+        self.web_view.page().mainFrame().addToJavaScriptWindowObject('host', self)
 
 
     @pyqtSlot(str)
-    def response(self, value):
-        print(value)
+    def query(self, indexUriData):
+        #break_pos = value.find(':')
+        #index = value[0:break_pos]
+        #json_text = json.loads(value[break_pos + 1:])
+
+        parts = indexUriData.split(':')
+        offset = len(parts[0]) + len(parts[1]) + 2
+        if parts[1] == 'config-path':
+            javascript = "hostClient.response(%d, %s)" % (
+                int(parts[0]),
+                json.dumps(user_config_file_path)
+            )
+            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+        elif parts[1] == 'document-structure':
+            self.document_structure_data = json.loads(indexUriData[offset:])
+            model = self.document_structure.model()
+
+            for topic in self.document_structure_data:
+                q_topic = QStandardItem(topic['text'])
+                for child in topic['children']:
+                    q_child = QStandardItem(child['text'])
+                    q_topic.appendRow(q_child)
+                model.appendRow(q_topic)
+        elif parts[1] == 'topic-scrolled-to':
+            model = self.document_structure.model()
+            selection_model = self.document_structure.selectionModel()
+            topic = json.loads(indexUriData[offset:])
+
+            if self.last_topic == topic:
+                return None
+
+            selection_model.clearSelection()
+
+            pos = self.get_topic_and_child_pos(topic)
+            if pos[0] is None:
+                return None
+
+            item = model.item(pos[0])
+            self.document_structure.setExpanded(model.indexFromItem(item), True)
+
+            if pos[1] is not None:
+                item = item.child(pos[1])
+
+            selection_model.select(
+                model.indexFromItem(item),
+                selection_model.Select
+            )
+            self.last_topic = topic
+        elif parts[1] == 'is-dark':
+            javascript = "hostClient.response(%d, %s)" % (
+                int(parts[0]),
+                json.dumps(self.parent().is_dark)
+            )
+            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+        elif parts[1] == 'link':
+            webbrowser.get().open_new(json.loads(indexUriData[offset:]))
+
+
+    def get_topic_and_child_pos(self, name):
+        if not self.document_structure_data:
+            return (None, None)
+
+        for i, topic in enumerate(self.document_structure_data):
+            if topic['name'] == name:
+                return (i, None)
+
+            for j, child in enumerate(topic['children']):
+                if child['name'] == name:
+                    return (i, j)
+
+        return (None, None)
 
 
     @property
@@ -113,6 +202,22 @@ class HelpDialog(InfoDialog):
     def __init__(self, main_win):
         super().__init__(main_win)
         self.page = 'help.html'
+
+
+class AboutDialog(InfoDialog):
+    def __init__(self, main_win):
+        super().__init__(main_win)
+        self.page = 'about.html'
+        self.setFixedSize(QSize(self.width(), self.height()))
+        self.document_structure.hide()
+
+
+class DonationDialog(InfoDialog):
+    def __init__(self, main_win):
+        super().__init__(main_win)
+        self.page = 'donate.html'
+        self.setFixedSize(QSize(self.width(), self.height()))
+        self.document_structure.hide()
 
 
 class ConnectionDialog(QDialog, WindowMixin):
@@ -159,6 +264,28 @@ class ConnectionDialog(QDialog, WindowMixin):
 
 
 class MainWindow(QMainWindow, WindowMixin):
+    table_views = [
+        'table_view_data',
+        'table_view_schema',
+        'table_view_result_set_1',
+        'table_view_result_set_2',
+        'table_view_result_set_3'
+    ]
+
+
+    @property
+    def record_set_colors(self):
+        self._record_set_colors = {
+            'error'  : QVariant(QColor(Qt.red)),
+            'number' : QVariant(QColor(
+                Qt.green if self.is_dark else Qt.darkGreen
+            )),
+            'date'   : QVariant(QColor(Qt.blue))
+        }
+
+        return self._record_set_colors
+
+
     def __init__(self):
         super().__init__()
 
@@ -170,10 +297,11 @@ class MainWindow(QMainWindow, WindowMixin):
         self.connection_dialog = ConnectionDialog(self)
         self.setup_text_editor()
         self.setup()
+        self._record_set_colors = None
 
 
     def setup_result_set(self, name):
-        self.result_sets[name] = TableModel()
+        self.result_sets[name] = TableModel(self.record_set_colors)
         table_view = self.f('table_view_' + name)
         table_view.setModel(self.result_sets[name])
         table_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -194,15 +322,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def copy_cell(self):
-        table_views = [
-            'table_view_data',
-            'table_view_schema',
-            'table_view_result_set_1',
-            'table_view_result_set_2',
-            'table_view_result_set_3'
-        ]
-
-        table_view = self.f(table_views[self.tab_result_sets.currentIndex()])
+        table_view = self.f(
+            self.table_views[self.tab_result_sets.currentIndex()]
+        )
 
         QApplication.instance().clipboard().setText(str(
             table_view.currentIndex().data()
@@ -371,6 +493,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def show_table(self, table_name):
+        max_records = 1000
         table_name_clean = repr(table_name)[1:-1]
 
         self.execute_update_table_model(
@@ -380,10 +503,15 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.execute_update_table_model(
             self.result_sets['data'],
-            "SELECT * FROM %s LIMIT %d" % (table_name_clean, 1000)
+            "SELECT * FROM %s LIMIT %d" % (table_name_clean, max_records)
         )
 
-        self.tab_result_sets.setTabText(0, 'Data: ' + table_name)
+        self.tab_result_sets.setTabText(0, 'Data: %s (%d)' % (
+            table_name,
+            max_records
+        ))
+
+        self.tab_result_sets.setCurrentIndex(0)
 
 
     def error_handler(self, errors):
@@ -507,6 +635,8 @@ class MainWindow(QMainWindow, WindowMixin):
         window.menu('action_refresh' + s, lambda: self.connections.refresh())
 
         window.menu('action_help' + s, HelpDialog(window).show)
+        window.menu('action_donate' + s, DonationDialog(window).show)
+        window.menu('action_about' + s, AboutDialog(window).show)
 
 
     def remove_connection(self):
@@ -533,10 +663,15 @@ class MainWindow(QMainWindow, WindowMixin):
             self.text_editor.font = new_font
 
 
-
-
-
     def setup(self):
+        for table_view in self.table_views:
+            self.f(table_view).horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeToContents
+            )
+            self.f(table_view).verticalHeader().setSectionResizeMode(
+                QHeaderView.ResizeToContents
+            )
+
         self.add_statusbar()
         self.bind_menu()
         self.bind_menu(self.extra_ui, '_result_set')
@@ -564,6 +699,31 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Must be last
         self.setup_state()
+
+
+    def show(self):
+        super().show()
+        self.show_is_old()
+
+
+    def show_is_old(self):
+        young_months = 6
+        past_date = datetime(2022, 7, 1)
+        age_months = ((datetime.now() - past_date).days) / 30
+        if age_months > young_months:
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Information)
+
+            box.setText(
+                "This version of Database Dossier is getting a bit old."
+                + '\n'
+                + 'It is ' + str(int(age_months)) + ' months old!'
+                + '\n'
+                + "Why not see if there is newer version?"
+            )
+            box.setWindowTitle("Database Dossier")
+            box.setStandardButtons(QMessageBox.Ok)
+            box.exec()
 
 
     def closeEvent(self, event):

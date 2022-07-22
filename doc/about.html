@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>About</title>
+<script src="./.js/jquery.js"></script>
+
+<style>
+body {
+    -webkit-user-select: none; /* Safari */
+    cursor: default;
+    font-family: "noto sans", Arial;
+}
+
+body.dark {
+    color: white;
+}
+
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+</style>
+
+<script>
+/* jshint asi: true */
+
+class HostClient {
+    constructor  () {
+        this.queryIndex = 0
+        this.callbacks = {}
+    }
+
+    query (name, data, callback) {
+        if (!window.host) {
+            return null
+        }
+
+        if (callback) {
+            this.callbacks[this.queryIndex + ''] = callback
+        }
+
+        host.query(this.queryIndex + ':' + name + ':' + JSON.stringify(data))
+        this.queryIndex++
+    }
+
+    response (index, jsonText) {
+        if (!this.callbacks[index]) {
+            $('body').html('fail' + $('body').html())
+            return null
+        }
+
+        this.callbacks[index](jsonText)
+        delete this.callbacks[index]
+    }
+
+    event (name, jsonText) {
+        if (!this.callbacks[name]) {
+            $('body').html('fail' + $('body').html())
+            return null
+        }
+
+        this.callbacks[name](JSON.parse(jsonText))
+    }
+
+    bind (name, callback) {
+        this.callbacks[name] = callback
+    }
+
+    ready (callback) {
+        setTimeout(callback, 10)
+    }
+}
+
+const hostClient = new HostClient()
+
+$(function() {
+    hostClient.ready(function () {
+        hostClient.query('is-dark', null, function (isDark) {
+            if (isDark) {
+                $('body').addClass('dark')
+            }
+        })
+    })
+    
+    $('a[href*="://"]').click(function (event) {
+        event.preventDefault()
+        hostClient.query('link', this.href)
+    })
+})
+</script>
+
+</head>
+<body>
+    <h1><a name="about">About Database Dossier</a></h1>
+    <div class="clearfix">
+        <div style="float: left">Database Dossier was written by Nicholas Shiell and uses:
+            <ul>
+                <li>Python</li>
+                <li>PyQt</li>
+                <li>Qt</li>
+                <li>AppImage</li>
+            </ul>
+        </div>
+
+        <img src="../artwork/database-dossier.png" alt="Logo" style="float: right" />
+    </div>
+    <p>It is released under the terms of the <a href="#">GNU/GPL version 3</a>.</p>
+
+    <div class="call-to-action">
+        <a href="https://www.patreon.com/nshiell">https://www.patreon.com/nshiell</a>
+    </div>
+</body>
+</html>

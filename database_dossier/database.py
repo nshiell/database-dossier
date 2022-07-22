@@ -1,3 +1,21 @@
+"""
+    Database Dossier - A User Interface for your databases
+    Copyright (C) 2022  Nicholas Shiell
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import json
 import mysql.connector
 from PyQt5.QtWidgets import *
@@ -155,8 +173,8 @@ class ConnectionList(list):
         if self.active_connection['broken']:
             raise QueryDatabaseException('No connection')
 
-        cursor = self.active_connection['db_connection'].cursor()
         try:
+            cursor = self.active_connection['db_connection'].cursor()
             cursor.execute(sql)
         except mysql.connector.errors.Error as e:
             raise QueryDatabaseException(str(e))
