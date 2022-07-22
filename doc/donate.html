@@ -36,10 +36,20 @@ body.dark {
 <script>
 /* jshint asi: true */
 
+class HostTitle {
+    query (message) {
+        document.title = message
+    }
+}
+
 class HostClient {
     constructor  () {
         this.queryIndex = 0
         this.callbacks = {}
+    }
+
+    implementTitlebarCom () {
+        window.host = new HostTitle()
     }
 
     query (name, data, callback) {
@@ -79,7 +89,13 @@ class HostClient {
     }
 
     ready (callback) {
-        setTimeout(callback, 10)
+        if (window.host) {
+            callback()
+        } else {
+            setTimeout(() => {
+                this.ready(callback)
+            }, 5)
+        }
     }
 }
 

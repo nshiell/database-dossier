@@ -41,12 +41,17 @@ ul, ol {
     padding-left: 40px;
 }
 </style>
-
 <script src="./.js/jquery.js"></script>
 <script src="./.js/waypoints.js"></script>
 
 <script>
 /* jshint asi: true */
+
+class HostTitle {
+    query (message) {
+        document.title = message
+    }
+}
 
 class HostClient {
     constructor  () {
@@ -54,6 +59,10 @@ class HostClient {
         this.callbacks = {}
     }
 
+    implementTitlebarCom () {
+        window.host = new HostTitle()
+    }
+    
     query (name, data, callback) {
         if (!window.host) {
             return null
@@ -91,7 +100,13 @@ class HostClient {
     }
 
     ready (callback) {
-        setTimeout(callback, 10)
+        if (window.host) {
+            callback()
+        } else {
+            setTimeout(() => {
+                this.ready(callback)
+            }, 5)
+        }
     }
 }
 
@@ -102,6 +117,7 @@ $(function() {
         hostClient.query('config-path', null, function (path) {
             $('.config-path').html(path)
         })
+        hostClient.query('document-structure', documentStructure)
     })
 
     const documentStructure = []
@@ -128,8 +144,6 @@ $(function() {
             }
         })
     })
-
-    hostClient.query('document-structure', documentStructure)
 
     function scrollTo(name) {
         const selector = '[name="' + name + '"]'

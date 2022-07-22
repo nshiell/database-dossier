@@ -75,6 +75,8 @@ class InfoDialog(QDialog, WindowMixin):
     def load_ui(self):
         self.resize(QSize(600, 300))
         self.load_xml('help.ui')
+        self.web_view.page().setBackgroundColor(Qt.transparent)
+
 
     def show(self):
         """
@@ -83,10 +85,12 @@ class InfoDialog(QDialog, WindowMixin):
         """
         if not self.setup:
             self.web_view.setUrl(
-                QUrl('file://' + self.doc_dir + '/' + self.page)
+                QUrl('file:///' + self.doc_dir.replace('\\', '/') + '/' + self.page)
+                #QUrl('file://' + self.doc_dir + '/' + self.page)
             )
             self.document_structure.setModel(QStandardItemModel())
             self.web_view.loadFinished.connect(self.load_finished)
+            self.web_view.titleChanged.connect(self.query)
             self.document_structure.clicked.connect(self.tree_click)
             self.setup = True
 
@@ -105,19 +109,22 @@ class InfoDialog(QDialog, WindowMixin):
                 'topic-scrolled-activated',
                 json.dumps(lst[row]['name'])
             )
-            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+            self.execute_javascript(javascript)
 
 
-    def load_finished(self, is_ok):
-        #print(self.web_view.page().mainFrame().evaluateJavaScript("from_app(7)"))
-        self.web_view.page().mainFrame().addToJavaScriptWindowObject('host', self)
+    def load_finished(self):
+        self.web_view.page().runJavaScript('hostClient.implementTitlebarCom()')
+
+
+    def execute_javascript(self, javascript):
+        self.web_view.page().runJavaScript(javascript)
+        #self.web_view.page().mainFrame().evaluateJavaScript(javascript)
 
 
     @pyqtSlot(str)
     def query(self, indexUriData):
-        #break_pos = value.find(':')
-        #index = value[0:break_pos]
-        #json_text = json.loads(value[break_pos + 1:])
+        if ':' not in indexUriData:
+            return None
 
         parts = indexUriData.split(':')
         offset = len(parts[0]) + len(parts[1]) + 2
@@ -126,7 +133,7 @@ class InfoDialog(QDialog, WindowMixin):
                 int(parts[0]),
                 json.dumps(user_config_file_path)
             )
-            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+            self.execute_javascript(javascript)
         elif parts[1] == 'document-structure':
             self.document_structure_data = json.loads(indexUriData[offset:])
             model = self.document_structure.model()
@@ -167,7 +174,7 @@ class InfoDialog(QDialog, WindowMixin):
                 int(parts[0]),
                 json.dumps(self.parent().is_dark)
             )
-            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+            self.execute_javascript(javascript)
         elif parts[1] == 'link':
             webbrowser.get().open_new(json.loads(indexUriData[offset:]))
 
