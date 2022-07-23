@@ -75,7 +75,6 @@ class InfoDialog(QDialog, WindowMixin):
     def load_ui(self):
         self.resize(QSize(600, 300))
         self.load_xml('help.ui')
-        self.web_view.page().setBackgroundColor(Qt.transparent)
 
 
     def show(self):
@@ -113,12 +112,14 @@ class InfoDialog(QDialog, WindowMixin):
 
 
     def load_finished(self):
-        self.web_view.page().runJavaScript('hostClient.implementTitlebarCom()')
+        #self.execute_javascript('hostClient.implementTitlebarCom()')
+        self.web_view.page().mainFrame().addToJavaScriptWindowObject('host', self)
+        self.execute_javascript('hostClient.implementHostCom()')
 
 
     def execute_javascript(self, javascript):
-        self.web_view.page().runJavaScript(javascript)
-        #self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+        #self.web_view.page().runJavaScript(javascript)
+        self.web_view.page().mainFrame().evaluateJavaScript(javascript)
 
 
     @pyqtSlot(str)
