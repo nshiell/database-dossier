@@ -1,4 +1,4 @@
-# A User Interface for your databases
+# A User Interface For Your Databases
 
 ![Alt text](artwork/screenshot-kde.png "Title")
 
@@ -12,7 +12,7 @@ Read more though the [Help](doc/help.html) file
 
 --------------------------------------------------
 
-*...Or clone out this repository and run:*
+*...or clone out this repository and run:*
 
 `python database-dossier.py`
 
