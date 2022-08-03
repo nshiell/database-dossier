@@ -672,14 +672,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def setup(self):
-        for table_view in self.table_views:
-            self.f(table_view).horizontalHeader().setSectionResizeMode(
-                QHeaderView.ResizeToContents
-            )
-            self.f(table_view).verticalHeader().setSectionResizeMode(
-                QHeaderView.ResizeToContents
-            )
-
         self.add_statusbar()
         self.bind_menu()
         self.bind_menu(self.extra_ui, '_result_set')
