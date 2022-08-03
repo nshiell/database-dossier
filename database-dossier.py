@@ -17,6 +17,7 @@
 import sys, signal
 from PyQt5.QtWidgets import QApplication
 from database_dossier import MainWindow
+from PyQt5 import QtWebEngineWidgets
 
 if __name__ == '__main__':
     # Kill the app on ctrl-c

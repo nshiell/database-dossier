@@ -57,14 +57,11 @@ class InfoDialog(QDialog, WindowMixin):
 
 
     def load_finished(self):
-        #self.execute_javascript('hostClient.implementTitlebarCom()')
-        self.web_view.page().mainFrame().addToJavaScriptWindowObject('host', self)
-        self.execute_javascript('hostClient.implementHostCom()')
+        self.execute_javascript('hostClient.implementTitlebarCom()')
 
 
     def execute_javascript(self, javascript):
-        #self.web_view.page().runJavaScript(javascript)
-        self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+        self.web_view.page().runJavaScript(javascript)
 
 
     @pyqtSlot(str)
