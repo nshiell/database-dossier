@@ -20,6 +20,7 @@ class InfoDialog(QDialog, WindowMixin):
     def load_ui(self):
         self.resize(QSize(600, 300))
         self.load_xml('help.ui')
+        self.web_view.page().setBackgroundColor(Qt.transparent)
 
 
     def show(self):
