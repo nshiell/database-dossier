@@ -24,6 +24,7 @@ from PyQt5.QtCore import *
 from .ui import *
 from . import syntax_highlighter
 from .store import *
+from .updater import show_please_update
 from .database import (
     ConnectionList,
     DatabaseException,
@@ -492,27 +493,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def show(self):
         super().show()
-        self.show_is_old()
-
-
-    def show_is_old(self):
-        young_months = 6
-        past_date = datetime(2022, 7, 1)
-        age_months = ((datetime.now() - past_date).days) / 30
-        if age_months > young_months:
-            box = QMessageBox()
-            box.setIcon(QMessageBox.Information)
-
-            box.setText(
-                "This version of Database Dossier is getting a bit old."
-                + '\n'
-                + 'It is ' + str(int(age_months)) + ' months old!'
-                + '\n'
-                + "Why not see if there is newer version?"
-            )
-            box.setWindowTitle("Database Dossier")
-            box.setStandardButtons(QMessageBox.Ok)
-            box.exec()
+        show_please_update()
 
 
     def closeEvent(self, event):
