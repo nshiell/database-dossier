@@ -61,6 +61,8 @@ class TableModel(QAbstractTableModel):
         if role == Qt.TextColorRole:
             if self.is_error:
                 return self.record_set_colors['error']
+            if text is None:
+                return self.record_set_colors['null'];
             if isinstance(text, datetime) or isinstance(text, date):
                 return self.record_set_colors['date']
             if isinstance(text, Number):
@@ -79,5 +81,8 @@ class TableModel(QAbstractTableModel):
         elif role == Qt.DisplayRole:
             if isinstance(text, (bytes, bytearray)):
                 text = text.decode("utf-8")
+
+            if text is None:
+                return 'null'
 
             return str(text)
