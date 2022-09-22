@@ -21,44 +21,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.Qt import QStandardItemModel, QTextDocument, QStandardItem
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+import database_dossier.syntax_highlighter
 from .ui import *
 from . import syntax_highlighter
 from .store import *
 from .updater import show_please_update
-from .database import (
-    ConnectionList,
-    DatabaseException,
-    create_db_connection_error
-)
-
-
-def show_connection_error(text):
-    msg = QMessageBox()
-    msg.setIcon(QMessageBox.Critical)
-    msg.setText("Error")
-    msg.setInformativeText(text)
-    msg.setWindowTitle("Error")
-    msg.exec_()
-
-
-def show_connection_ok():
-    msg = QMessageBox()
-    msg.setIcon(QMessageBox.Information)
-    msg.setText("Ok")
-    msg.setInformativeText('Can connect')
-    msg.setWindowTitle("OK")
-    msg.exec_()
-
-
-def show_confirm_remove_connection(name):
-    msg = QMessageBox()
-    msg.setIcon(QMessageBox.Information)
-    msg.setText("Unsubscribe")
-    msg.setInformativeText('Do you want to unsubscribe from %s?' % name)
-    msg.setWindowTitle("Unsubscribe - Database Dossier")
-    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-
-    return msg.exec_()
+from .database import ConnectionList, DatabaseException, test_connection
 
 
 class MainWindow(QMainWindow, WindowMixin):
@@ -74,6 +42,9 @@ class MainWindow(QMainWindow, WindowMixin):
     @property
     def record_set_colors(self):
         self._record_set_colors = {
+            'null' : QVariant(QColor(
+                Qt.yellow if self.is_dark else Qt.darkYellow
+            )),
             'error'  : QVariant(QColor(Qt.red)),
             'number' : QVariant(QColor(
                 Qt.green if self.is_dark else Qt.darkGreen
@@ -92,7 +63,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.load_xml('main_window.ui')
         self.extra_ui_file_name = 'extra.ui'
         self.result_sets = {}
-        self.connection_dialog = ConnectionDialog(self)
+        self.connection_dialog = ConnectionDialog(self, test_connection)
         self.setup_text_editor()
         self.setup()
         self._record_set_colors = None
@@ -109,14 +80,6 @@ class MainWindow(QMainWindow, WindowMixin):
                 QCursor.pos()
             )
         )
-
-
-    def test_connection(self, **kwargs):
-        error = create_db_connection_error(**kwargs)
-        if error is not None:
-            show_connection_error(error)
-        else:
-            show_connection_ok()
 
 
     def copy_cell(self):
@@ -376,7 +339,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.extra_ui.action_undo_extra.setEnabled(can_undo)
             self.extra_ui.action_redo_extra.setEnabled(can_redo)
 
-        self.text_editor = TextEditor(self, self.text_edit_sql)
+        self.text_editor = TextEditor(self, self.text_edit_sql, syntax_highlighter)
 
         context_menu = self.extra_ui.get_menu_action('editor')
 

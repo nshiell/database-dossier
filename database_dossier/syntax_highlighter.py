@@ -35,19 +35,27 @@ def create_formatter(stylesheet):
 
 def highlight(text, formatter):
     extra_char = False
+    start_char = False
     if len(text) and text[-1] == "\n":
         extra_char = True
         text+= 'z'
-    
+
+    if len(text) and text[0] == "\n":
+        start_char = True
+        text = 'a' + text
+
     # Generated HTML contains unnecessary newline at the end
     # before </pre> closing tag.
     # We need to remove that newline because it's screwing up
     # QTextEdit formatting and is being displayed
     # as a non-editable whitespace.
+    # ... but don't trim the input if there was a newline in the origional input
 
-    highlighted_text = _highlight(text, SqlLexer(), formatter).strip()
-
+    highlighted = _highlight(text, SqlLexer(), formatter).strip()
     if extra_char:
-        highlighted_text = '</span>'.join(highlighted_text.rsplit('z</span>', 1))
+        highlighted = '</span>'.join(highlighted.rsplit('z</span>', 1))
 
-    return highlighted_text
+    if start_char:
+        highlighted = '</span>'.join(highlighted.split('a</span>', 1))
+
+    return highlighted

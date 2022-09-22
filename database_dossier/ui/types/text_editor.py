@@ -17,52 +17,12 @@
 """
 
 import csv
-from pygments import highlight as _highlight
-from pygments.lexers import SqlLexer
 from pygments.formatters import HtmlFormatter
 from PyQt5.Qt import QObject
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from . import TextDocument
-
-def style():
-    style = HtmlFormatter().get_style_defs()
-    return style
-
-
-def create_formatter(stylesheet):
-    formatter = HtmlFormatter(style='native', prestyles=stylesheet)
-    formatter.noclasses = True
-
-    return formatter
-
-
-def highlight(text, formatter):
-    extra_char = False
-    start_char = False
-    if len(text) and text[-1] == "\n":
-        extra_char = True
-        text+= 'z'
-
-    if len(text) and text[0] == "\n":
-        start_char = True
-        text = 'a' + text
-
-    # Generated HTML contains unnecessary newline at the end
-    # before </pre> closing tag.
-    # We need to remove that newline because it's screwing up
-    # QTextEdit formatting and is being displayed
-    # as a non-editable whitespace.
-
-    highlighted = _highlight(text, SqlLexer(), formatter).strip()
-    if extra_char:
-        highlighted = '</span>'.join(highlighted.rsplit('z</span>', 1))
-
-    if start_char:
-        highlighted = '</span>'.join(highlighted.split('a</span>', 1))
-
-    return highlighted
 
 
 class TextEditor(QObject):
@@ -79,8 +39,9 @@ class TextEditor(QObject):
     * And wappers for undo/redo
     """
 
-    def __init__(self, parent, q_text, **kwargs):
+    def __init__(self, parent, q_text, syntax_highlighter, **kwargs):
         super().__init__(parent)
+        self.syntax_highlighter = syntax_highlighter
         self.q_text = q_text
         self.update_formatter_style()
         self.doc = TextDocument(parent)
@@ -103,7 +64,7 @@ class TextEditor(QObject):
                 split('}')[0].replace('{', '').strip()
             )
 
-        self.formatter = create_formatter(style)
+        self.formatter = self.syntax_highlighter.create_formatter(style)
 
 
     def trigger(self, event_name, args=None):
@@ -315,7 +276,10 @@ class TextEditor(QObject):
         # Setting the cursor pos on whitepsace
         # only strings causes problems
         if text.strip():
-            self.doc.setHtml(highlight(text, self.formatter))
+            self.doc.setHtml(
+                self.syntax_highlighter.highlight(text, self.formatter)
+            )
+            #self.doc.setHtml(highlight(text, self.formatter))
 
             # Return cursor back to the old position
             cursor.setPosition(position)
