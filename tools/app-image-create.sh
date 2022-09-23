@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 cd `dirname $0`
-VERSION='1.0.0'
+VERSION='latest'
 
 # Will create a https://appimage.org/
 
@@ -76,7 +76,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>
     <url type="homepage">https://nshiell.com/database-dossier</url>
     <screenshots>
         <screenshot type="default">
-            <image>https://nshiell.com/database-dossier/screenshot-kde.png.png</image>
+            <image>https://nshiell.com/database-dossier/screenshot-kde.png</image>
         </screenshot>
     </screenshots>
     <provides>
