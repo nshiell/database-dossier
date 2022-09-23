@@ -1,3 +1,21 @@
+"""
+    Database Dossier - A User Interface for your databases
+    Copyright (C) 2022  Nicholas Shiell
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import os, json, webbrowser
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import *
@@ -5,6 +23,36 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 from .types import *
+
+
+def show_connection_error(text):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Critical)
+    msg.setText("Error")
+    msg.setInformativeText(text)
+    msg.setWindowTitle("Error")
+    msg.exec_()
+
+
+def show_connection_ok():
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText("Ok")
+    msg.setInformativeText('Can connect')
+    msg.setWindowTitle("OK")
+    msg.exec_()
+
+
+def show_confirm_remove_connection(name):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText("Unsubscribe")
+    msg.setInformativeText('Do you want to unsubscribe from %s?' % name)
+    msg.setWindowTitle("Unsubscribe - Database Dossier")
+    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+    return msg.exec_()
+
 
 class InfoDialog(QDialog, WindowMixin):
     def __init__(self, main_win):
@@ -174,18 +222,19 @@ class DonationDialog(InfoDialog):
 
 
 class ConnectionDialog(QDialog, WindowMixin):
-    def __init__(self, main_win):
+    def __init__(self, main_win, test_connection):
         super().__init__(main_win)
 
         self.setFixedSize(QSize(300, 140))
         self.load_xml('connection.ui')
 
         self.test.clicked.connect(lambda:
-            main_win.test_connection(**self.connection_dict)
+            test_connection(**self.connection_dict)
         )
 
         self.bind('button_box.Ok', 'clicked', self.add)
         self.bind('button_box.Cancel', 'clicked', self.close)
+
 
 
     def add(self):

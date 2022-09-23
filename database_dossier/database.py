@@ -28,6 +28,32 @@ class DatabaseException(Exception): pass
 class QueryDatabaseException(DatabaseException): pass
 
 
+def show_connection_error(text):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Critical)
+    msg.setText("Error")
+    msg.setInformativeText(text)
+    msg.setWindowTitle("Error")
+    msg.exec_()
+
+
+def show_connection_ok():
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText("Ok")
+    msg.setInformativeText('Can connect')
+    msg.setWindowTitle("OK")
+    msg.exec_()
+
+
+def test_connection(**kwargs):
+    error = create_db_connection_error(**kwargs)
+    if error is not None:
+        show_connection_error(error)
+    else:
+        show_connection_ok()
+
+
 class ConnectionList(list):
     def __init__(self, connections, q_tree):
         self.extend(connections)
