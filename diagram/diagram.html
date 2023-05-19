@@ -1,0 +1,848 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title></title>
+
+<style>
+body {
+    background-color: white;
+    color: black;
+}
+
+html, body, svg.lines {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+svg.lines {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+}
+
+.node {
+    font-family: Arial;
+    font-size: 10pt;
+    display: flex;
+    justify-content: center; /* Align horizontal */
+    align-items: center; /* Align vertical */
+    border-radius: 15px;
+    border: 1px solid rgba(255, 0, 0, .1);
+    position: absolute;
+    background-color: rgba(0, 255, 0, .6);
+    /*width: 200px;
+    height: 100px;*/
+    text-align: center;
+    /*line-height: 100px;*/
+    z-index: 2;
+}
+
+</style>
+
+<script>
+/* jshint asi: true */
+
+class HostTitle {
+    query (message) {
+        document.title = message
+    }
+}
+
+class HostClient {
+    constructor  () {
+        this.queryIndex = 0
+        this.callbacks = {}
+    }
+
+    implementTitlebarCom () {
+        window.host = new HostTitle()
+    }
+    
+    query (name, data, callback) {
+        if (!window.host) {
+            return null
+        }
+
+        if (callback) {
+            this.callbacks[this.queryIndex + ''] = callback
+        }
+        host.query(this.queryIndex + ':' + name + ':' + JSON.stringify(data))
+
+        this.queryIndex++
+    }
+
+    response (index, jsonText) {
+        if (!this.callbacks[index]) {
+            $('body').html('fail' + $('body').html())
+            return null
+        }
+
+        this.callbacks[index](jsonText)
+        delete this.callbacks[index]
+    }
+
+    event (name, jsonText) {
+        if (!this.callbacks[name]) {
+            $('body').html('fail' + $('body').html())
+            return null
+        }
+
+        this.callbacks[name](JSON.parse(jsonText))
+    }
+
+    bind (name, callback) {
+        this.callbacks[name] = callback
+    }
+
+    ready (callback) {
+        setTimeout(() => {
+            callback()
+        }, 5)
+    }
+}
+
+const hostClient = new HostClient()
+
+
+
+
+//window.onerror = function(e) {alert(e)};
+
+function createElement(html) {
+    throwIfNotInstanceOf(html, 'string')
+
+    var temp = document.createElement('template')
+    html = html.trim() // Never return a space text node as a result
+    temp.innerHTML = html
+    return temp.content.firstChild
+}
+
+function throwNotNumber(number, allowNull) {
+    if (allowNull && number === null) {
+        return null
+    }
+
+    if (typeof number != 'number' && !(number instanceof Number)) {
+        throw 'number must be an instance of Number'
+    }
+}
+
+
+function throwNotWholeNumber(number, allowNull) {
+    if (allowNull && number === null) {
+        return null
+    }
+
+    if (typeof number != 'number' && !(number instanceof Number)) {
+        throw 'number must be an instance of Number'
+    }
+
+    if (number - Math.floor(number) > 0) {
+        throw 'number must be a whole number'
+    }
+}
+
+function throwIfNotOneInstanceOf(value, types, allowNull) {
+    if (allowNull && number === null) {
+        return null
+    }
+
+    types.forEach(type => throwIfNotInstanceOf(value, type))
+}
+
+
+function throwIfNotInstanceOf(value, type, allowNull=false) {
+    if (allowNull && value === null) {
+        return null
+    }
+
+    if (typeof value != type && !(value instanceof type)) {
+        throw `value must be and instance of "${type.name}" got: "${value}"`
+    }
+}
+
+function Line(startPoint=null, endPoint=null, $element=null) {
+    throwIfNotInstanceOf(startPoint, Point, true)
+    throwIfNotInstanceOf(endPoint, Point, true)
+
+    this.startPoint = startPoint
+    this.endPoint = endPoint
+    this.$element = $element
+
+    this.length = function () {
+        // horizontal
+        var length = null
+        if (this.startPoint.y == this.endPoint.y) {
+            if (this.startPoint.x == this.endPoint.x) {
+                return 0
+            }
+
+            length = this.startPoint.x - this.endPoint.x
+        } else if (this.startPoint.x == this.endPoint.x) {
+            length = this.startPoint.y - this.endPoint.y
+        } else {
+            // height and width maybe negative
+            // but shouldn't matter as squaring them should fix it
+            var height = this.startPoint.y - this.endPoint.y
+            var width = this.startPoint.x - this.endPoint.x
+            length = Math.sqrt((height * height) + (width * width))
+        }
+
+        return (length < 0) ? (0 - length) : length
+    }
+}
+
+
+
+
+function Point(x=null, y=null) {
+    throwNotWholeNumber(x, true)
+    throwNotWholeNumber(y, true)
+    this.x = x
+    this.y = y
+
+    this.xPixels = function () {
+        return this.x + 'px'
+    }
+
+    this.yPixels = function () {
+        return this.y + 'px'
+    }
+
+
+    this.subtractWith = function (point) {
+        throwIfNotInstanceOf(point, Point)
+        this.x-= point.x
+        this.y-= point.y
+
+        return this
+    }
+
+    this.addWith = function (point) {
+        throwIfNotInstanceOf(point, Point)
+        this.x+= point.x
+        this.y+= point.y
+
+        return this
+    }
+
+    this.moveTo = function (point) {
+        throwIfNotInstanceOf(point, Point)
+        this.x = point.x
+        this.y = point.y
+
+        return this
+    }
+}
+// @see https://www.mathsisfun.com/definitions/minuend.html
+Point.subtract = function (minuendPoint, subtrahendPoint) {
+    throwIfNotInstanceOf(minuendPoint, Point)
+    throwIfNotInstanceOf(subtrahendPoint, Point)
+    return new Point(
+        minuendPoint.x - subtrahendPoint.x,
+        minuendPoint.y - subtrahendPoint.y
+    )
+}
+
+Point.sum = function (point1, point2) {
+    throwIfNotInstanceOf(point1, Point)
+    throwIfNotInstanceOf(point2, Point)
+    return new Point(
+        point1.x + point2.x,
+        point1.y + point2.y
+    )
+}
+
+Point.negate = function (point) {
+    throwIfNotInstanceOf(point, Point)
+    return new Point(-point.x, -point.y)
+}
+
+Point.clone = function (point) {
+    throwIfNotInstanceOf(point, Point)
+    return new Point(point.x, point.y)
+}
+
+Point.equals = function (point1, point2) {
+    throwIfNotInstanceOf(point1, Point)
+    throwIfNotInstanceOf(point2, Point)
+    return (point1.x === point2.x && point1.y === point2.y)
+}
+
+
+
+
+
+function Polygon(points, text=null) {
+    this.text = text
+    this.originalPoints = points
+    this.$element = null
+
+    // nasty stateful hacks here
+    this.laidOut = false
+    this.correctedPosition = false
+
+    this.points = {}
+    /*Object.entries(points).forEach(kv =>
+        this.points[kv[0]] = Point.clone(kv[1])
+    )
+    */
+    Object.keys(points).forEach(k =>
+        this.points[k] = Point.clone(points[k])
+    )
+
+    this.moveTopLeftTo = function (newTopLeft) {
+        this.points.topLeft.moveTo(newTopLeft)
+
+        Object.keys(points).forEach(k => {
+            if (k != 'topLeft') {
+                this.points[k].moveTo(
+                    Point.sum(this.points.topLeft, this.originalPoints[k])
+                )
+            }
+        })
+
+        /*
+        Object.entries(this.points).forEach(kv => {
+            if (kv[0] != 'topLeft') {
+                this.points[kv[0]].moveTo(
+                    Point.sum(this.points.topLeft, this.originalPoints[kv[0]])
+                )
+            }
+        })*/
+    }
+
+    this.moveCenterTo = function (newCenter) {
+        this.points.center.moveTo(newCenter)
+        this.points.topLeft.moveTo(Point.subtract(
+            newCenter,
+            this.originalPoints.center
+        ))
+/*
+        Object.entries(this.points).forEach(kv => {
+            if (kv[0] != 'center' && kv[0] != 'topLeft') {
+                this.points[kv[0]].moveTo(
+                    Point.sum(this.points.topLeft, this.originalPoints[kv[0]])
+                )
+            }
+        })
+        */
+        Object.keys(points).forEach(k => {
+            if (k != 'center' && k != 'topLeft') {
+                this.points[k].moveTo(
+                    Point.sum(this.points.topLeft, this.originalPoints[k])
+                )
+            }
+        })
+    }
+}
+
+
+
+function Relationship(polygon, children=[], lines=[]) {
+    this.polygon = polygon
+    this.children = children
+    this.lines = lines
+    this.childLines = []
+}
+
+
+var nodeWidth = 80
+var nodeHeight = 30
+var cornerPadding = 5
+
+var polyPoints = {
+    'topLeft': new Point(0, 0),
+    'topRight': new Point(nodeWidth, 0),
+    'bottomRight': new Point(nodeWidth, nodeHeight),
+    'bottomLeft': new Point(0, nodeHeight),
+    'center': new Point(nodeWidth / 2, nodeHeight / 2),
+
+    'connectionTopMiddle': new Point(nodeWidth / 2, 0),
+    'connectionBottomMiddle': new Point(nodeWidth / 2, nodeHeight + 2),
+
+    'connectionRightMiddle': new Point(nodeWidth + 1, nodeHeight / 2),
+    'connectionLeftMiddle': new Point(-1, nodeHeight / 2),
+
+    'connection1': new Point(cornerPadding, cornerPadding),
+    'connection2': new Point(nodeWidth - cornerPadding, cornerPadding),
+    'connection3': new Point(cornerPadding, nodeHeight - cornerPadding),
+    'connection4': new Point(nodeWidth - cornerPadding, nodeHeight - cornerPadding)
+}
+
+
+var pagePoints = {
+    'topLeft': new Point(0, 0),
+    'topRight': new Point(1500, 0),
+    'bottomRight': new Point(1500, 1000),
+    'bottomLeft': new Point(0, 1000),
+    'center': new Point(750, 500)
+}
+
+/*
+var inner = new Polygon(polyPoints, 'inner')
+var graph = new Relationship(
+    new Polygon(pagePoints), [
+        new Relationship(new Polygon(polyPoints, 'first'), [
+            new Relationship(inner),
+            new Relationship(new Polygon(polyPoints, 'tenth')),
+            new Relationship(new Polygon(polyPoints, 'eleventh'), [
+                new Relationship(inner)
+            ])
+        ])
+    ]
+)*/
+
+
+function drawPolygon(child, $page) {
+    if (child.polygon.$element) {
+        return null
+    }
+
+    child.polygon.$element = createElement(`<div class="node"></div>`)
+    child.polygon.$element.style.left = child.polygon.points.topLeft.x + 'px'
+    child.polygon.$element.style.top = child.polygon.points.topLeft.y + 'px'
+/*
+    child.polygon.$element.onmouseover = function () {
+        child.lines.concat(child.childLines).forEach(line => line.$element.style.stroke='rgb(0, 0, 0, 1)')
+    }
+
+    child.polygon.$element.onmouseout = function () {
+        document.querySelectorAll('svg.lines line').forEach(line => line.style.stroke='rgb(0, 0, 0, .2)')
+    }
+*/
+    child.polygon.$element.style.width = (child.polygon.points.topRight.x - child.polygon.points.topLeft.x) + 'px'
+    child.polygon.$element.style.height = (child.polygon.points.bottomLeft.y - child.polygon.points.topLeft.y) + 'px'
+    if (child.polygon.text) {
+        child.polygon.$element.textContent = child.polygon.text
+    }
+
+    $page.appendChild(child.polygon.$element)
+}
+
+function calculatePositions(graph, level=0) {
+    if (graph.children.length > 1) {
+        var radius = 250 - (level * 80)
+        if (radius < 50) {
+            radius = 50
+        }
+
+        var childrenToLayOut = 0
+        graph.children.forEach(child => {
+            if (!child.polygon.laidOut) {
+                childrenToLayOut++
+            }
+        })
+
+        var step = (2 * Math.PI) / childrenToLayOut;//graph.children.length
+        var angle = level * 10
+
+        var pageRatio = (
+            graph.polygon.points.bottomRight.x /
+            graph.polygon.points.bottomRight.y
+        )
+
+        graph.children.forEach((child, i) => {
+            if (!child.polygon.laidOut) {
+                var x = Math.floor(
+                    Math.round(radius * Math.cos(angle)) *
+                    pageRatio
+                )
+
+                var y = Math.round(radius * Math.sin(angle))
+
+                child.polygon.moveCenterTo(Point.sum(
+                    graph.polygon.points.center,
+                    new Point(x, y)
+                ))
+                child.polygon.laidOut = true
+                angle+= step
+
+                if (child.children.length) {
+                    calculatePositions(child, level + 1)
+                }
+            }
+        })
+    } else {
+        var newCenterPoint = Point.clone(graph.polygon.points.center)
+        if (level) {
+            newCenterPoint.addWith(new Point(0, 100))
+        }
+
+        graph.children[0].polygon.moveCenterTo(newCenterPoint)
+        if (graph.children[0].children.length) {
+            calculatePositions(graph.children[0], level + 1)
+        }
+    }
+}
+
+
+
+
+function centerGraph(graph) {
+    var leftMost = null
+    var topMost = null
+    var rightMost = null
+    var bottomMost = null
+
+    function recursiveFind(parent) {
+        parent.children.forEach(child => {
+            const topLeft = child.polygon.points.topLeft
+            const bottomRight = child.polygon.points.bottomRight
+
+            if (leftMost === null || topLeft.x < leftMost) {
+                leftMost = topLeft.x
+            }
+
+            if (topMost === null || topLeft.y < topMost) {
+                topMost = topLeft.y
+            }
+
+            if (rightMost === null || bottomRight.x > rightMost) {
+                rightMost = bottomRight.x
+            }
+
+            if (bottomMost === null || bottomRight.y > bottomMost) {
+                bottomMost = bottomRight.y
+            }
+
+            if (child.children) {
+                recursiveFind(child)
+            }
+        })
+    }
+    recursiveFind(graph)
+
+    var left = Math.floor((graph.polygon.points.bottomRight.x - rightMost + leftMost) / 2)
+    var top = Math.floor((graph.polygon.points.bottomRight.y - bottomMost + topMost) / 2)
+
+    var oldLeftTop = new Point(leftMost, topMost)
+    var newLeftTop = new Point(left, top)
+    var delta = Point.subtract(oldLeftTop, newLeftTop)
+
+    function recursiveMove(parent) {
+        parent.children.forEach(child => {
+            if (!child.polygon.correctedPosition) {
+                let newTopLeftCalculated = Point.subtract(child.polygon.points.topLeft, delta)
+                if (newTopLeftCalculated.x < 0) {
+                    newTopLeftCalculated.x = 0
+                }
+                if (newTopLeftCalculated.y < 0) {
+                    newTopLeftCalculated.y = 0
+                }
+                child.polygon.moveTopLeftTo(newTopLeftCalculated)
+                child.polygon.correctedPosition = true
+            }
+            if (child.children) {
+                recursiveMove(child)
+            }
+        })
+    }
+    recursiveMove(graph)
+}
+
+
+
+function calculateLines(parent) {
+    var parentConnectionPoints = {}
+    Object.keys(parent.polygon.points).forEach(k => {
+        if (k.indexOf('connection') > -1) {
+            parentConnectionPoints[k] = parent.polygon.points[k];/*Point.sum(
+                parent.polygon.points.topLeft,
+                kv[1]
+            )*/
+        }
+    })
+
+    parent.children.forEach(child => {
+        var shortestLine = null
+        var shortestLineLength = null
+
+        Object.keys(child.polygon.points).forEach(k => {
+            if (k.indexOf('connection') > -1) {
+                Object.keys(parentConnectionPoints).forEach(kP => {
+                    var candidateLine = new Line(
+                        parentConnectionPoints[kP],
+                        child.polygon.points[k]
+                    )
+
+                    if (shortestLine === null || candidateLine.length() < shortestLineLength) {
+                        shortestLineLength = candidateLine.length()
+                        shortestLine = candidateLine
+                    }
+                })
+            }
+        })
+
+/*HERE!!!!!!!!!!!
+        Object.entries(child.polygon.points).forEach(kv => {
+            if (kv[0].indexOf('connection') > -1) {
+                Object.entries(parentConnectionPoints).forEach(kvP => {
+                    var candidateLine = new Line(kvP[1], kv[1])
+                    if (shortestLine === null || candidateLine.length < shortestLineLength) {
+                        shortestLineLength = candidateLine.length
+                        shortestLine = candidateLine
+                    }
+                })
+            }
+        })
+*/
+        if (shortestLine) {
+            child.lines.push(shortestLine)
+            parent.childLines.push(shortestLine)
+        }
+
+        calculateLines(child)
+    })
+}
+
+
+
+function drawLine(line) {
+    throwIfNotInstanceOf(line, Line)
+
+    $svg = document.body.querySelector('svg.lines')
+    var svgNamespace = $svg.namespaceURI
+    var $line = document.createElementNS(svgNamespace, 'line')
+    $line.setAttribute('x1', line.startPoint.x)
+    $line.setAttribute('y1', line.startPoint.y)
+
+    $line.setAttribute('x2', line.endPoint.x)
+    $line.setAttribute('y2', line.endPoint.y)
+
+    $line.style.stroke = 'rgba(0, 0, 0, .5)'
+    //$line.style.stroke = 'red'
+    $line.style.strokeWidth = '1'
+    $svg.appendChild($line)
+
+    return $line
+}
+
+
+
+
+
+function drawLines(parent) {
+    parent.children.forEach(child => {
+        child.lines.forEach(line => {
+            line.$element = drawLine(line)
+        })
+        drawLines(child)
+    })
+}
+
+function drawNode(parent, $page) {
+    parent.children.forEach(child => {
+        drawPolygon(child, $page)
+        drawNode(child, $page)
+    })
+}
+
+function drawPage(graph) {
+    var $page = createElement(`<div class="page"></div>`)
+    $page.style.left = graph.polygon.points.topLeft.x + 'px'
+    $page.style.top = graph.polygon.points.topLeft.y + 'px'
+
+    $page.style.width = graph.polygon.points.bottomRight.x + 'px'
+    $page.style.height = graph.polygon.points.bottomRight.y + 'px'
+
+    $page.style.backgroundColor = '#EEEEEE'
+    document.body.appendChild($page)
+
+    return $page
+}
+
+
+//var l = console.log
+
+
+function go() {
+    //hostClient.ready(function () {
+        //hostClient.query('schema', null, function (schema) {
+
+            var schema = {
+                'table1': {},
+                'table1.5': {'table1': 'sdf'},
+                'table2': {'table1': 'sdf'},
+                'table3': {'table2': 'sdf'},
+                'table4': {'table2': 'sdf'},
+                'table5': {'table1': 'sdf', 'table4': 'sfg'},
+                'table6': {},
+                'table7': {}
+            }
+    
+            var nodePolygonsWithRef = {}
+            var highestNumberOfReferences = 0
+            
+            function PolygonWithReferenceCount(polygon, referenceCount) {
+                this.polygon = polygon
+                this.referenceCount = referenceCount ? referenceCount : 0
+                this.drawn = false
+                
+                this.addToReferenceCount = function (addend) {
+                    this.referenceCount+= addend
+                }
+            }
+            //document.body.style.fontSize = '10px'
+            //var nodesNamesToRemoveFromTop = []
+            //document.body.innerHTML+='<br />' + JSON.stringify(schema)
+            var graph = new Relationship(new Polygon(pagePoints))
+            Object.keys(schema).forEach(name => {
+                var polyWithRef = new PolygonWithReferenceCount(
+                    new Polygon(polyPoints, name),
+                    Object.keys(schema[name]).length
+                )
+                
+                //nodePolygons[name].referenceCount = Object.keys(schema[name]).length
+                //document.body.innerHTML+='<br />' + name + ' ' + nodePolygons[name].referenceCount
+                Object.keys(schema).forEach(nameOfOther => {
+                    if (nameOfOther != name && schema[nameOfOther][name]) {
+                        polyWithRef.addToReferenceCount(1)
+                    }
+                })
+                
+                if (polyWithRef.referenceCount > highestNumberOfReferences) {
+                    highestNumberOfReferences = polyWithRef.referenceCount
+                }
+                
+                nodePolygonsWithRef[name] = polyWithRef
+                
+                //document.body.innerHTML+='<br />' + highestNumberOfReferences
+                //document.body.innerHTML+='<br />' + name
+                //nodePolygons[k]
+                //graph.children.push(new Relationship(new Polygon(polyPoints, k)))
+            })
+            
+            function shouldAddChild(parentName, childName) {
+                if (parentName == childName) {
+                    return false
+                }
+
+                if (schema[parentName][childName] !== undefined) {
+                    return true
+                }
+                /*
+                if (schema[childName][parentName] !== undefined) {
+                    return true
+                }*/
+                
+                return false
+            }
+            
+            function addBranch(parentRelationship, root, parentNames=[]) {
+                //var moreBrnaches = false
+                Object.keys(nodePolygonsWithRef).forEach(name => {
+                    var nodePolyWithRef = nodePolygonsWithRef[name]
+                    
+                    if (nodePolyWithRef.drawn && 0) {
+                        return;
+                    }
+                    
+                    if (parentNames.indexOf(name) > -1) {
+                        //l(name)
+                        return;
+                    }
+                    
+                    //moreBrnaches = true
+                    var shouldAdd = false
+                    /*if (nodePolygonsWithRef.polygon.text == name) {
+                        shouldAdd = true
+                    }*/
+
+                    if (root) {
+                        if (nodePolyWithRef.referenceCount == highestNumberOfReferences) {
+                            shouldAdd = true
+                        }
+                        if (nodePolyWithRef.referenceCount == 0) {
+                            shouldAdd = true
+                        }
+                    } else {
+                        shouldAdd = shouldAddChild(parentRelationship.polygon.text, name)
+                        //l(shouldAdd + ' ' + parentRelationship.polygon.text + ' ' + name)
+                    }
+                    var parentNamesNew = parentNames.filter(() => true)
+                    parentNamesNew.push(name)
+                    if (shouldAdd) {// && !nodePolyWithRef.drawn) {
+                        var ref = new Relationship(nodePolyWithRef.polygon)
+                        parentRelationship.children.push(ref)
+                        //if (!nodePolyWithRef.drawn) {
+                            addBranch(ref, false, parentNamesNew)
+                        //}
+                        nodePolyWithRef.drawn = true
+                    }
+                })
+                
+                //return moreBrnaches
+            }
+
+            addBranch(graph, true)
+            
+            while (true) {
+                highestNumberOfReferences = 0
+                Object.keys(schema).forEach(name => {
+                    polyWithRef = nodePolygonsWithRef[name]
+                    if (!polyWithRef.drawn && polyWithRef.referenceCount > highestNumberOfReferences) {
+                        highestNumberOfReferences = polyWithRef.referenceCount
+                    }
+                })
+                //l(highestNumberOfReferences)
+                if (highestNumberOfReferences) {
+                    addBranch(graph, true)
+                } else {
+                    break
+                }
+            }
+                
+            /*//while (addBranch(graph, true)) {l('d')}
+            highestNumberOfReferences = null
+            while (true) {
+                Object.keys(schema).forEach(name => {
+                    polyWithRef = nodePolygonsWithRef[name]
+                    if (!polyWithRef.drawn && polyWithRef.referenceCount > highestNumberOfReferences) {
+                        highestNumberOfReferences = polyWithRef.referenceCount
+                    }
+                })
+                
+                if (highestNumberOfReferences === null) {
+                    break
+                }
+
+                addBranch(graph, true)
+            }*/
+            
+            /*
+            Object.keys(schema).forEach(k => {
+                Object.keys(schema[k]).forEach(k2 => {
+                    nodePolygons[k].references.push(k2)
+                })
+            })
+            
+            Object.keys(schema).forEach(k => {
+                Object.keys(schema[k]).forEach(k2 => {
+                    nodePolygons[k].references.push(k2)
+                })
+            })*/
+            
+            calculatePositions(graph)
+            centerGraph(graph)
+            var $page = drawPage(graph)
+            calculateLines(graph)
+            drawNode(graph, $page)
+            drawLines(graph)
+        //})
+    //})
+        //hostClient.query('document-structure', documentStructure)
+}
+
+window.onerror = alert
+</script>
+</head>
+<body onload="go()">
+<svg class="lines"></svg>
+
+</body>
+</html>
