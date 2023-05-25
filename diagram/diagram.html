@@ -6,15 +6,15 @@
 
 <style>
 body {
-    background-color: white;
-    color: black;
+    background-color: black;
+    color: white;
 }
 
 html, body, svg.lines {
-    width: 100%;
-    height: 100%;
+    /*width: 100%;
+    height: 100%;*/
     margin: 0;
-    overflow: hidden;
+    /*overflow: hidden;*/
 }
 
 svg.lines {
@@ -61,7 +61,7 @@ class HostClient {
     implementTitlebarCom () {
         window.host = new HostTitle()
     }
-    
+
     query (name, data, callback) {
         if (!window.host) {
             return null
@@ -473,14 +473,13 @@ function calculatePositions(graph, level=0) {
             newCenterPoint.addWith(new Point(0, 100))
         }
 
+        // needed?
         graph.children[0].polygon.moveCenterTo(newCenterPoint)
         if (graph.children[0].children.length) {
             calculatePositions(graph.children[0], level + 1)
         }
     }
 }
-
-
 
 
 function centerGraph(graph) {
@@ -614,9 +613,10 @@ function drawLine(line) {
     $line.setAttribute('x2', line.endPoint.x)
     $line.setAttribute('y2', line.endPoint.y)
 
-    $line.style.stroke = 'rgba(0, 0, 0, .5)'
+
+    $line.style.stroke = 'rgba(255, 255, 255, 1)'
     //$line.style.stroke = 'red'
-    $line.style.strokeWidth = '1'
+    $line.style.strokeWidth = '2'
     $svg.appendChild($line)
 
     return $line
@@ -644,13 +644,18 @@ function drawNode(parent, $page) {
 
 function drawPage(graph) {
     var $page = createElement(`<div class="page"></div>`)
+
     $page.style.left = graph.polygon.points.topLeft.x + 'px'
     $page.style.top = graph.polygon.points.topLeft.y + 'px'
 
     $page.style.width = graph.polygon.points.bottomRight.x + 'px'
     $page.style.height = graph.polygon.points.bottomRight.y + 'px'
 
-    $page.style.backgroundColor = '#EEEEEE'
+    var $lines = document.querySelector('svg.lines')
+    $lines.style.height = $page.style.height
+    $lines.style.width = $page.style.width
+
+    //$page.style.backgroundColor = '#EEEEEE'
     document.body.appendChild($page)
 
     return $page
@@ -660,185 +665,136 @@ function drawPage(graph) {
 //var l = console.log
 
 
-function go() {
-    //hostClient.ready(function () {
-        //hostClient.query('schema', null, function (schema) {
 
-            var schema = {
-                'table1': {},
-                'table1.5': {'table1': 'sdf'},
-                'table2': {'table1': 'sdf'},
-                'table3': {'table2': 'sdf'},
-                'table4': {'table2': 'sdf'},
-                'table5': {'table1': 'sdf', 'table4': 'sfg'},
-                'table6': {},
-                'table7': {}
-            }
-    
-            var nodePolygonsWithRef = {}
-            var highestNumberOfReferences = 0
-            
-            function PolygonWithReferenceCount(polygon, referenceCount) {
-                this.polygon = polygon
-                this.referenceCount = referenceCount ? referenceCount : 0
-                this.drawn = false
-                
-                this.addToReferenceCount = function (addend) {
-                    this.referenceCount+= addend
-                }
-            }
-            //document.body.style.fontSize = '10px'
-            //var nodesNamesToRemoveFromTop = []
-            //document.body.innerHTML+='<br />' + JSON.stringify(schema)
-            var graph = new Relationship(new Polygon(pagePoints))
-            Object.keys(schema).forEach(name => {
-                var polyWithRef = new PolygonWithReferenceCount(
-                    new Polygon(polyPoints, name),
-                    Object.keys(schema[name]).length
-                )
-                
-                //nodePolygons[name].referenceCount = Object.keys(schema[name]).length
-                //document.body.innerHTML+='<br />' + name + ' ' + nodePolygons[name].referenceCount
-                Object.keys(schema).forEach(nameOfOther => {
-                    if (nameOfOther != name && schema[nameOfOther][name]) {
-                        polyWithRef.addToReferenceCount(1)
-                    }
-                })
-                
-                if (polyWithRef.referenceCount > highestNumberOfReferences) {
-                    highestNumberOfReferences = polyWithRef.referenceCount
-                }
-                
-                nodePolygonsWithRef[name] = polyWithRef
-                
-                //document.body.innerHTML+='<br />' + highestNumberOfReferences
-                //document.body.innerHTML+='<br />' + name
-                //nodePolygons[k]
-                //graph.children.push(new Relationship(new Polygon(polyPoints, k)))
-            })
-            
-            function shouldAddChild(parentName, childName) {
-                if (parentName == childName) {
-                    return false
-                }
 
-                if (schema[parentName][childName] !== undefined) {
-                    return true
-                }
-                /*
-                if (schema[childName][parentName] !== undefined) {
-                    return true
-                }*/
-                
-                return false
-            }
-            
-            function addBranch(parentRelationship, root, parentNames=[]) {
-                //var moreBrnaches = false
-                Object.keys(nodePolygonsWithRef).forEach(name => {
-                    var nodePolyWithRef = nodePolygonsWithRef[name]
-                    
-                    if (nodePolyWithRef.drawn && 0) {
-                        return;
-                    }
-                    
-                    if (parentNames.indexOf(name) > -1) {
-                        //l(name)
-                        return;
-                    }
-                    
-                    //moreBrnaches = true
-                    var shouldAdd = false
-                    /*if (nodePolygonsWithRef.polygon.text == name) {
-                        shouldAdd = true
-                    }*/
 
-                    if (root) {
-                        if (nodePolyWithRef.referenceCount == highestNumberOfReferences) {
-                            shouldAdd = true
-                        }
-                        if (nodePolyWithRef.referenceCount == 0) {
-                            shouldAdd = true
-                        }
-                    } else {
-                        shouldAdd = shouldAddChild(parentRelationship.polygon.text, name)
-                        //l(shouldAdd + ' ' + parentRelationship.polygon.text + ' ' + name)
-                    }
-                    var parentNamesNew = parentNames.filter(() => true)
-                    parentNamesNew.push(name)
-                    if (shouldAdd) {// && !nodePolyWithRef.drawn) {
-                        var ref = new Relationship(nodePolyWithRef.polygon)
-                        parentRelationship.children.push(ref)
-                        //if (!nodePolyWithRef.drawn) {
-                            addBranch(ref, false, parentNamesNew)
-                        //}
-                        nodePolyWithRef.drawn = true
-                    }
-                })
-                
-                //return moreBrnaches
+function createGraphFromSchema(schema) {
+    var nodePolygonsWithRef = {}
+
+    function PolygonWithReferenceCount(polygon, refCount) {
+        this.polygon = polygon
+        this.refCount = refCount ? refCount : 0
+        this.drawn = false
+
+        this.addToReferenceCount = function (addend) {
+            this.refCount+= addend
+        }
+    }
+
+    var graph = new Relationship(new Polygon(pagePoints))
+
+    Object.keys(schema).forEach(name => {
+        var polyWithRef = new PolygonWithReferenceCount(
+            new Polygon(polyPoints, name),
+            Object.keys(schema[name]).length
+        )
+
+        Object.keys(schema).forEach(nameOfOther => {
+            if (nameOfOther != name && schema[nameOfOther][name]) {
+                polyWithRef.addToReferenceCount(1)
+            }
+        })
+
+        nodePolygonsWithRef[name] = polyWithRef
+    })
+
+    function shouldAddChild(parentName, childName) {
+        if (parentName == childName) {
+            return false
+        }
+
+        if (schema[parentName][childName] !== undefined) {
+            return true
+        }
+
+        return false
+    }
+
+    function addBranch(parentRelationship, highestNumOfRefs, parentNames=[]) {
+        Object.keys(nodePolygonsWithRef).forEach(name => {
+            var nodePolyWithRef = nodePolygonsWithRef[name]
+
+            if (parentNames.indexOf(name) > -1) {
+                return;
             }
 
-            addBranch(graph, true)
-            
-            while (true) {
-                highestNumberOfReferences = 0
-                Object.keys(schema).forEach(name => {
-                    polyWithRef = nodePolygonsWithRef[name]
-                    if (!polyWithRef.drawn && polyWithRef.referenceCount > highestNumberOfReferences) {
-                        highestNumberOfReferences = polyWithRef.referenceCount
-                    }
-                })
-                //l(highestNumberOfReferences)
-                if (highestNumberOfReferences) {
-                    addBranch(graph, true)
-                } else {
-                    break
-                }
-            }
-                
-            /*//while (addBranch(graph, true)) {l('d')}
-            highestNumberOfReferences = null
-            while (true) {
-                Object.keys(schema).forEach(name => {
-                    polyWithRef = nodePolygonsWithRef[name]
-                    if (!polyWithRef.drawn && polyWithRef.referenceCount > highestNumberOfReferences) {
-                        highestNumberOfReferences = polyWithRef.referenceCount
-                    }
-                })
-                
-                if (highestNumberOfReferences === null) {
-                    break
-                }
+            var shouldAdd = false
 
-                addBranch(graph, true)
-            }*/
-            
-            /*
-            Object.keys(schema).forEach(k => {
-                Object.keys(schema[k]).forEach(k2 => {
-                    nodePolygons[k].references.push(k2)
-                })
-            })
-            
-            Object.keys(schema).forEach(k => {
-                Object.keys(schema[k]).forEach(k2 => {
-                    nodePolygons[k].references.push(k2)
-                })
-            })*/
-            
-            calculatePositions(graph)
-            centerGraph(graph)
-            var $page = drawPage(graph)
-            calculateLines(graph)
-            drawNode(graph, $page)
-            drawLines(graph)
-        //})
-    //})
-        //hostClient.query('document-structure', documentStructure)
+            if (parentNames.length == 0) {
+                if (nodePolyWithRef.refCount == highestNumOfRefs) {
+                    shouldAdd = true
+                }
+                if (nodePolyWithRef.refCount == 0) {
+                    shouldAdd = true
+                }
+            } else {
+                shouldAdd = shouldAddChild(parentRelationship.polygon.text, name)
+            }
+            var parentNamesNew = parentNames.filter(() => true)
+            parentNamesNew.push(name)
+            if (shouldAdd) {
+                var ref = new Relationship(nodePolyWithRef.polygon)
+                parentRelationship.children.push(ref)
+                addBranch(ref, highestNumOfRefs, parentNamesNew)
+                nodePolyWithRef.drawn = true
+            }
+        })
+    }
+
+    var highestNumOfRefs
+    do {
+        highestNumOfRefs = 0
+        Object.keys(schema).forEach(name => {
+            var polyWithRef = nodePolygonsWithRef[name]
+            if (!polyWithRef.drawn && polyWithRef.refCount > highestNumOfRefs) {
+                highestNumOfRefs = polyWithRef.refCount
+            }
+        })
+
+        if (highestNumOfRefs || !graph.children.length) {
+            addBranch(graph, highestNumOfRefs)
+        }
+    } while (highestNumOfRefs)
+
+    return graph
 }
 
-window.onerror = alert
+function clearPage() {
+    [].forEach.call(document.querySelectorAll('line, .page'), $ => $.remove())
+}
+
+function drawGraphFromSchema(schema) {
+        /*var schema = {
+        'table1': {},
+        'table1.5': {'table1': 'sdf'},
+        'table2': {'table1': 'sdf'},
+        'table3': {'table2': 'sdf'},
+        'table4': {'table2': 'sdf'},
+        'table5': {'table1': 'sdf', 'table4': 'sfg'},
+        'table6': {},
+        'table7': {}
+    }*/
+    var graph = createGraphFromSchema(schema)
+
+    calculatePositions(graph)
+    centerGraph(graph)
+    clearPage()
+    var $page = drawPage(graph)
+    calculateLines(graph)
+
+    drawNode(graph, $page)
+    drawLines(graph)
+}
+
+
+function go() {
+    hostClient.bind('schema-new', drawGraphFromSchema)
+    hostClient.ready(function () {
+        hostClient.query('schema', null, drawGraphFromSchema)
+    })
+}
+
+//window.onerror = alert
 </script>
 </head>
 <body onload="go()">
