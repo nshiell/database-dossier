@@ -43,13 +43,13 @@ class MainWindow(QMainWindow, WindowMixin):
     def record_set_colors(self):
         self._record_set_colors = {
             'null' : QVariant(QColor(
-                Qt.yellow if self.is_dark else Qt.darkYellow
+                Qt.darkYellow if self.is_dark else Qt.gray
             )),
             'error'  : QVariant(QColor(Qt.red)),
             'number' : QVariant(QColor(
                 Qt.green if self.is_dark else Qt.darkGreen
             )),
-            'date'   : QVariant(QColor(Qt.blue))
+            'date'   : QVariant(QColor(255, 0, 255))
         }
 
         return self._record_set_colors
@@ -63,6 +63,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.load_xml('main_window.ui')
         self.extra_ui_file_name = 'extra.ui'
         self.result_sets = {}
+        self.diagram = None
         self.connection_dialog = ConnectionDialog(self, test_connection)
         self.setup_text_editor()
         self.setup()
@@ -123,7 +124,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def highlight_log(self, new_index):
-        if new_index == 1:
+        if new_index == 2:
             self.text_edit_log_document.setHtml(
             syntax_highlighter.highlight(
                 self.text_edit_log.toPlainText(),
@@ -131,6 +132,21 @@ class MainWindow(QMainWindow, WindowMixin):
             )
         )
 
+
+    def show_diagram(self, new_index):
+        if new_index == 1:
+            if self.diagram == None:
+                self.diagram = Diagram(
+                    self.web_view_diagram,
+                    self.connections.active_connection_schema(
+                        self.connections.active_connection['database']
+                    )
+                )
+                self.diagram.setup()
+            else:
+                self.diagram.draw_schema(self.connections.active_connection_schema(
+                        self.connections.active_connection['database']
+                ))
 
     def select_sql_fragment(self, start_point, end_point):
         text_cursor = self.text_edit_sql.textCursor()
@@ -248,6 +264,10 @@ class MainWindow(QMainWindow, WindowMixin):
 
             if database:
                 self.f('connection_indicator').setText(database)
+                if self.diagram:
+                    self.diagram.draw_schema(self.connections.active_connection_schema(
+                            self.connections.active_connection['database']
+                    ))
         else:
             self.f('db_name').setText('')
             self.f('connection_indicator').setText('')
@@ -449,6 +469,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.execute_2.clicked.connect(lambda: self.execute(1))
         self.execute_3.clicked.connect(lambda: self.execute(2))
         self.table_query.currentChanged.connect(self.highlight_log)
+        self.table_query.currentChanged.connect(self.show_diagram)
 
         # Must be last
         self.setup_state()

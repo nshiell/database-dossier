@@ -208,11 +208,54 @@ class ConnectionList(list):
         return cursor
 
 
+    def active_connection_schema(self, database_name):
+        sql = '''
+            SELECT
+                tables.table_name,
+                ref_con.referenced_table_name,
+                key_column_usage.column_name,
+                ref_con.constraint_name
+
+                FROM
+                    information_schema.tables AS tables
+
+                    LEFT JOIN
+                        information_schema.referential_constraints AS ref_con ON
+                            ref_con.constraint_schema = tables.table_schema AND
+                            tables.table_name = ref_con.table_name
+
+                    LEFT JOIN information_schema.key_column_usage as key_column_usage ON
+                        ref_con.constraint_schema = key_column_usage.table_schema
+                            AND ref_con.table_name = key_column_usage.table_name
+                            AND ref_con.constraint_name = key_column_usage.constraint_name
+
+                WHERE
+                    information_schema.tables.table_schema = '%s';
+        '''
+        tables = {}
+
+        for result in self.execute_active_connection_cursor(sql % database_name):
+            if result[0] not in tables:
+                tables[result[0]] = {}
+
+            if result[1]:
+                if result[1] not in tables[result[0]]:
+                    tables[result[0]][result[1]] = {}
+
+                if result[2] not in tables[result[0]][result[1]]:
+                    tables[result[0]][result[1]][result[2]] = {}
+
+                tables[result[0]][result[1]][result[2]] = result[3]
+
+        return tables
+
+
+
 def list_databases(lst, connection_item):
     if connection_item.rowCount() == 0:
         for x in lst.execute_active_connection_cursor('SHOW DATABASES;'):
             connection_item.appendRow(DatabaseTreeItem(name=x[0]))
-    
+
         lst.q_tree.expand(connection_item.index())
 
 
@@ -257,7 +300,7 @@ def update_tree_state(lst):
         select_connection(lst, connection_item)
 
         list_databases(lst, connection_item)
-    
+
         if 'database' in lst.active_connection:
             database_name = lst.active_connection['database']
             if database_name:
