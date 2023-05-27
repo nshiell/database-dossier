@@ -10,6 +10,11 @@ body {
     color: white;
 }
 
+* {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 html, body, svg.lines {
     /*width: 100%;
     height: 100%;*/
@@ -44,7 +49,7 @@ svg.lines {
 }
 
 .node:hover {
-    background-color: rgba(255, 255, 255, .2);
+    /*background-color: rgba(255, 255, 255, .2);*/
     border: 1px solid rgba(255, 255, 255, 1);
 }
 
@@ -393,7 +398,10 @@ var pagePoints = {
     'topRight': new Point(1500, 0),
     'bottomRight': new Point(1500, 1000),
     'bottomLeft': new Point(0, 1000),
-    'center': new Point(750, 500)
+    'center': new Point(750, 500),
+
+    'marginTopLeft': new Point(20, 20),
+    'marginBottomRight': new Point(1500 - 20, 1000 - 20)
 }
 
 /*
@@ -514,7 +522,10 @@ function moveGraphLeft(graph) {
 
     recursiveFind(graph)
 
-    var delta = new Point(leftMost - 20, topMost - 20)
+    var delta = new Point(
+        leftMost - graph.polygon.points.marginTopLeft.x,
+        topMost - graph.polygon.points.marginTopLeft.y
+    )
 
     function recursiveMove(parent) {
         parent.children.forEach(child => {
@@ -880,6 +891,89 @@ function drawGraphLines(graph, spacing, colors) {
     document.body.appendChild($graphLines)
 }
 
+function Mover(graph) {
+    this.graph = graph
+    this.$node = null
+    this.offsetPoint = null
+    this.polygon = null
+    this.zIndex = 10
+
+    function findPolygon(parent, $node) {
+        for (var child of parent.children) {
+            if (child.polygon.$element === $node) {
+                return child.polygon
+            }
+
+            if (child.children) {
+                var posibileChild = findPolygon(child, $node)
+                if (posibileChild) {
+                    return posibileChild
+                }
+            }
+        }
+    }
+
+
+    this.start = function ($node) {
+        this.$node = $node
+        this.offsetPoint = null
+        $node.style.zIndex = this.zIndex
+    }
+
+    this.stop = function () {
+        this.$node = null
+        this.zIndex++
+    }
+
+    this.moveMouse = function (event) {
+        if (!this.$node) {
+            return false
+        }
+
+        var pointerPoint = new Point(event.pageX, event.pageY)
+        if (this.offsetPoint == null) {
+            this.polygon = findPolygon(this.graph, this.$node)
+            this.offsetPoint = Point.subtract(pointerPoint, this.polygon.points.topLeft)
+        }
+
+        var graphPoints = graph.polygon.points
+
+        var newTopLeft = Point.subtract(
+            pointerPoint,
+            this.offsetPoint
+        )
+
+        var maxBottomLeft = Point.subtract(
+            graph.polygon.points.marginBottomRight,
+            this.polygon.originalPoints.bottomRight
+        )
+
+        var newBottomRight = Point.sum(
+            newTopLeft,
+            this.polygon.originalPoints.bottomRight
+        )
+
+        if (newTopLeft.x < graphPoints.marginTopLeft.x) {
+            newTopLeft.x = graphPoints.marginTopLeft.x
+        } else if (newBottomRight.x > graphPoints.marginBottomRight.x) {
+            newTopLeft.x = maxBottomLeft.x
+        }
+
+        if (newTopLeft.y < graphPoints.marginTopLeft.y) {
+            newTopLeft.y = graphPoints.marginTopLeft.y
+        } else if (newBottomRight.y > graphPoints.marginBottomRight.y) {
+            newTopLeft.y = maxBottomLeft.y
+        }
+
+        this.polygon.moveTopLeftTo(newTopLeft)
+
+        this.$node.style.left = this.polygon.points.topLeft.x + 'px'
+        this.$node.style.top = this.polygon.points.topLeft.y + 'px'
+    }
+}
+
+var mover = null
+
 function drawGraphFromSchema(schema) {
     var graph = createGraphFromSchema(schema)
 
@@ -895,6 +989,7 @@ function drawGraphFromSchema(schema) {
     drawLines(graph)
 
     drawGraphLines(graph, 20, ['#EEEEFF', '#DDDDEE'])
+    mover = new Mover(graph)
 }
 
 function goDev() {
@@ -917,6 +1012,22 @@ function go() {
         hostClient.query('schema', null, drawGraphFromSchema)
     })
 }
+
+window.addEventListener('mousedown', function (event) {
+    if (event.target.tagName.toUpperCase() != 'DIV') {
+        return false
+    }
+    if (!event.target.classList.contains('node')) {
+        return false
+    }
+
+    if (mover) {
+        mover.start(event.target)
+    }
+})
+
+window.addEventListener('mouseup', () => mover && mover.stop())
+window.addEventListener('mousemove', (e) => mover && mover.moveMouse(e))
 
 //window.onerror = alert
 </script>
