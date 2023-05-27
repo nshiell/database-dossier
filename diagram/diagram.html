@@ -6,7 +6,7 @@
 
 <style>
 body {
-    background-color: black;
+    background-color: #FFFFFF;
     color: white;
 }
 
@@ -30,15 +30,22 @@ svg.lines {
     display: flex;
     justify-content: center; /* Align horizontal */
     align-items: center; /* Align vertical */
-    border-radius: 15px;
-    border: 1px solid rgba(255, 0, 0, .1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .7);
     position: absolute;
-    background-color: rgba(0, 255, 0, .6);
+    background-color: rgba(255, 0, 255, 1);
     /*width: 200px;
     height: 100px;*/
     text-align: center;
     /*line-height: 100px;*/
     z-index: 2;
+    cursor: move;
+    box-shadow: 4px 2px 10px -1px rgba(0,0,0,0.58);
+}
+
+.node:hover {
+    background-color: rgba(255, 255, 255, .2);
+    border: 1px solid rgba(255, 255, 255, 1);
 }
 
 </style>
@@ -305,15 +312,20 @@ function Polygon(points, text=null) {
                 )
             }
         })
+    }
 
-        /*
-        Object.entries(this.points).forEach(kv => {
-            if (kv[0] != 'topLeft') {
-                this.points[kv[0]].moveTo(
-                    Point.sum(this.points.topLeft, this.originalPoints[kv[0]])
-                )
-            }
-        })*/
+    this.moveRightTo = function (rightX) {
+        this.moveTopLeftTo(new Point(
+            rightX - this.originalPoints.bottomRight.x,
+            this.points.topLeft.y
+        ))
+    }
+
+    this.moveBottomTo = function (bottomY) {
+        this.moveTopLeftTo(new Point(
+            this.points.topLeft.x,
+            bottomY - this.originalPoints.bottomRight.y
+        ))
     }
 
     this.moveCenterTo = function (newCenter) {
@@ -351,9 +363,10 @@ function Relationship(polygon, children=[], lines=[]) {
 }
 
 
-var nodeWidth = 80
+//var nodeWidth = 80
+var nodeWidth = 200
 var nodeHeight = 30
-var cornerPadding = 5
+var cornerPadding = 2
 
 var polyPoints = {
     'topLeft': new Point(0, 0),
@@ -426,7 +439,7 @@ function drawPolygon(child, $page) {
 
 function calculatePositions(graph, level=0) {
     if (graph.children.length > 1) {
-        var radius = 250 - (level * 80)
+        var radius = 256.546 - (level * 80.654)
         if (radius < 50) {
             radius = 50
         }
@@ -479,6 +492,73 @@ function calculatePositions(graph, level=0) {
             calculatePositions(graph.children[0], level + 1)
         }
     }
+}
+
+function moveGraphLeft(graph) {
+    var leftMost = null
+    var topMost = null
+
+    function recursiveFind(parent) {
+        parent.children.forEach(child => {
+            const topLeft = child.polygon.points.topLeft
+
+            if (leftMost === null || topLeft.x < leftMost) {
+                leftMost = topLeft.x
+            }
+
+            if (topMost === null || topLeft.y < topMost) {
+                topMost = topLeft.y
+            }
+        })
+    }
+
+    recursiveFind(graph)
+
+    var delta = new Point(leftMost - 20, topMost - 20)
+
+    function recursiveMove(parent) {
+        parent.children.forEach(child => {
+            if (!child.polygon.correctedPosition) {
+                let newTopLeftCalculated = Point.subtract(child.polygon.points.topLeft, delta)
+                if (newTopLeftCalculated.x < 0) {
+                    newTopLeftCalculated.x = 0
+                }
+                if (newTopLeftCalculated.y < 0) {
+                    newTopLeftCalculated.y = 0
+                }
+                child.polygon.moveTopLeftTo(newTopLeftCalculated)
+                child.polygon.correctedPosition = true
+            }
+            if (child.children) {
+                recursiveMove(child)
+            }
+        })
+    }
+    recursiveMove(graph)
+
+}
+
+function constrineGraph(graph, bottomRight) {
+    if (!bottomRight) {
+        bottomRight = graph.polygon.points.bottomRight
+    }
+
+    function recursiveMove(parent) {
+        parent.children.forEach(child => {
+            if (child.polygon.points.bottomRight.x > bottomRight.x) {
+                child.polygon.moveRightTo(bottomRight.x)
+            }
+
+            if (child.polygon.points.bottomRight.y > bottomRight.y) {
+                child.polygon.moveBottomTo(bottomRight.y)
+            }
+
+            if (child.children) {
+                recursiveMove(child)
+            }
+        })
+    }
+    recursiveMove(graph, bottomRight)
 }
 
 
@@ -614,7 +694,8 @@ function drawLine(line) {
     $line.setAttribute('y2', line.endPoint.y)
 
 
-    $line.style.stroke = 'rgba(255, 255, 255, 1)'
+    //$line.style.stroke = 'rgba(255, 255, 255, 1)'
+    $line.style.stroke = 'rgba(0, 0, 0, 1)'
     //$line.style.stroke = 'red'
     $line.style.strokeWidth = '2'
     $svg.appendChild($line)
@@ -760,11 +841,64 @@ function createGraphFromSchema(schema) {
 }
 
 function clearPage() {
-    [].forEach.call(document.querySelectorAll('line, .page'), $ => $.remove())
+    [].forEach.call(document.querySelectorAll('line, .page, .graph-lines'), $ => $.remove())
+}
+
+function drawGraphLines(graph, spacing, colors) {
+    var $graphLines = createElement(`<div class="graph-lines"></div>`)
+    var height = graph.polygon.points.bottomRight.y
+    var width = graph.polygon.points.bottomRight.x
+
+    function addLine(offset, isHorizontal) {
+        var $l = createElement(`<div class="bg-line"></div>`)
+        $l.style.backgroundColor = (offset % 100) ? colors[0] : colors[1]
+        $l.style.position = 'absolute'
+
+        if (isHorizontal) {
+            $l.style.height = '1px'
+            $l.style.width = width + 'px'
+            $l.style.left = 0
+            $l.style.top = offset + 'px'
+        } else {
+            $l.style.width = '1px'
+            $l.style.height = height + 'px'
+            $l.style.top = 0
+            $l.style.left = offset + 'px'
+        }
+
+        $graphLines.appendChild($l)
+    }
+
+    for (var left = spacing; left < width - 1; left+= spacing) {
+        addLine(left, false)
+    }
+
+    for (var top = spacing; top < height - 1; top+= spacing) {
+        addLine(top, true)
+    }
+
+    document.body.appendChild($graphLines)
 }
 
 function drawGraphFromSchema(schema) {
-        /*var schema = {
+    var graph = createGraphFromSchema(schema)
+
+    calculatePositions(graph)
+    moveGraphLeft(graph)
+    constrineGraph(graph)
+    clearPage()
+
+    var $page = drawPage(graph)
+    calculateLines(graph)
+
+    drawNode(graph, $page)
+    drawLines(graph)
+
+    drawGraphLines(graph, 20, ['#EEEEFF', '#DDDDEE'])
+}
+
+function goDev() {
+    var schema = {
         'table1': {},
         'table1.5': {'table1': 'sdf'},
         'table2': {'table1': 'sdf'},
@@ -773,20 +907,10 @@ function drawGraphFromSchema(schema) {
         'table5': {'table1': 'sdf', 'table4': 'sfg'},
         'table6': {},
         'table7': {}
-    }*/
-    var graph = createGraphFromSchema(schema)
+    }
 
-    calculatePositions(graph)
-    centerGraph(graph)
-    clearPage()
-    var $page = drawPage(graph)
-    calculateLines(graph)
-
-    drawNode(graph, $page)
-    drawLines(graph)
+    drawGraphFromSchema(schema)
 }
-
-
 function go() {
     hostClient.bind('schema-new', drawGraphFromSchema)
     hostClient.ready(function () {
@@ -797,7 +921,7 @@ function go() {
 //window.onerror = alert
 </script>
 </head>
-<body onload="go()">
+<body onload="window.console && goDev() || go()">
 <svg class="lines"></svg>
 
 </body>
