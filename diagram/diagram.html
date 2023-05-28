@@ -38,7 +38,7 @@ svg.lines {
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, .7);
     position: absolute;
-    background-color: rgba(255, 0, 255, 1);
+    background-color: rgba(100, 100, 100, 1);
     /*width: 200px;
     height: 100px;*/
     text-align: center;
@@ -177,13 +177,14 @@ function throwIfNotInstanceOf(value, type, allowNull=false) {
     }
 }
 
-function Line(startPoint=null, endPoint=null, $element=null) {
+function Line(startPoint=null, endPoint=null, objects=[], $element=null) {
     throwIfNotInstanceOf(startPoint, Point, true)
     throwIfNotInstanceOf(endPoint, Point, true)
 
     this.startPoint = startPoint
     this.endPoint = endPoint
     this.$element = $element
+    this.objects = objects
 
     this.length = function () {
         // horizontal
@@ -404,44 +405,27 @@ var pagePoints = {
     'marginBottomRight': new Point(1500 - 20, 1000 - 20)
 }
 
-/*
-var inner = new Polygon(polyPoints, 'inner')
-var graph = new Relationship(
-    new Polygon(pagePoints), [
-        new Relationship(new Polygon(polyPoints, 'first'), [
-            new Relationship(inner),
-            new Relationship(new Polygon(polyPoints, 'tenth')),
-            new Relationship(new Polygon(polyPoints, 'eleventh'), [
-                new Relationship(inner)
-            ])
-        ])
-    ]
-)*/
-
-
-function drawPolygon(child, $page) {
+function drawPolygon(child, $page, colors) {
     if (child.polygon.$element) {
         return null
     }
 
-    child.polygon.$element = createElement(`<div class="node"></div>`)
-    child.polygon.$element.style.left = child.polygon.points.topLeft.x + 'px'
-    child.polygon.$element.style.top = child.polygon.points.topLeft.y + 'px'
-/*
-    child.polygon.$element.onmouseover = function () {
-        child.lines.concat(child.childLines).forEach(line => line.$element.style.stroke='rgb(0, 0, 0, 1)')
-    }
+    var $element = createElement(`<div class="node"></div>`)
+    $element.style.left = child.polygon.points.topLeft.x + 'px'
+    $element.style.top = child.polygon.points.topLeft.y + 'px'
 
-    child.polygon.$element.onmouseout = function () {
-        document.querySelectorAll('svg.lines line').forEach(line => line.style.stroke='rgb(0, 0, 0, .2)')
-    }
-*/
-    child.polygon.$element.style.width = (child.polygon.points.topRight.x - child.polygon.points.topLeft.x) + 'px'
-    child.polygon.$element.style.height = (child.polygon.points.bottomLeft.y - child.polygon.points.topLeft.y) + 'px'
+
+
+    $element.style.width = (child.polygon.points.topRight.x - child.polygon.points.topLeft.x) + 'px'
+    $element.style.height = (child.polygon.points.bottomLeft.y - child.polygon.points.topLeft.y) + 'px'
     if (child.polygon.text) {
-        child.polygon.$element.textContent = child.polygon.text
+        if (colors && colors[child.polygon.text]) {
+            $element.style.backgroundColor = colors[child.polygon.text]
+        }
+        $element.textContent = child.polygon.text
     }
 
+    child.polygon.$element = $element
     $page.appendChild(child.polygon.$element)
 }
 
@@ -467,7 +451,7 @@ function calculatePositions(graph, level=0) {
             graph.polygon.points.bottomRight.y
         )
 
-        graph.children.forEach((child, i) => {
+        graph.children.forEach(child => {
             if (!child.polygon.laidOut) {
                 var x = Math.floor(
                     Math.round(radius * Math.cos(angle)) *
@@ -636,58 +620,65 @@ function centerGraph(graph) {
 }
 
 
+function calculateLine(parentConnectionPoints, parentPolygon, childPolygon, name=null) {
+    var shortestLine = null
+    var shortestLineLength = null
 
-function calculateLines(parent) {
-    var parentConnectionPoints = {}
-    Object.keys(parent.polygon.points).forEach(k => {
+    Object.keys(childPolygon.points).forEach(k => {
         if (k.indexOf('connection') > -1) {
-            parentConnectionPoints[k] = parent.polygon.points[k];/*Point.sum(
-                parent.polygon.points.topLeft,
-                kv[1]
-            )*/
+            Object.keys(parentConnectionPoints).forEach(kP => {
+                var candidateLine = new Line(
+                    parentConnectionPoints[kP],
+                    childPolygon.points[k],
+                    [
+                        parentPolygon,
+                        childPolygon,
+                        name
+                    ]
+                )
+
+                if (shortestLine === null || candidateLine.length() < shortestLineLength) {
+                    shortestLineLength = candidateLine.length()
+                    shortestLine = candidateLine
+                }
+            })
         }
     })
 
-    parent.children.forEach(child => {
-        var shortestLine = null
-        var shortestLineLength = null
+    return shortestLine
+}
 
-        Object.keys(child.polygon.points).forEach(k => {
+function calculateLines(graph) {
+    var names = []
+    function calculate(parent) {
+        var parentConnectionPoints = {}
+        Object.keys(parent.polygon.points).forEach(k => {
             if (k.indexOf('connection') > -1) {
-                Object.keys(parentConnectionPoints).forEach(kP => {
-                    var candidateLine = new Line(
-                        parentConnectionPoints[kP],
-                        child.polygon.points[k]
-                    )
-
-                    if (shortestLine === null || candidateLine.length() < shortestLineLength) {
-                        shortestLineLength = candidateLine.length()
-                        shortestLine = candidateLine
-                    }
-                })
+                parentConnectionPoints[k] = parent.polygon.points[k]
             }
         })
 
-/*HERE!!!!!!!!!!!
-        Object.entries(child.polygon.points).forEach(kv => {
-            if (kv[0].indexOf('connection') > -1) {
-                Object.entries(parentConnectionPoints).forEach(kvP => {
-                    var candidateLine = new Line(kvP[1], kv[1])
-                    if (shortestLine === null || candidateLine.length < shortestLineLength) {
-                        shortestLineLength = candidateLine.length
-                        shortestLine = candidateLine
-                    }
-                })
-            }
-        })
-*/
-        if (shortestLine) {
-            child.lines.push(shortestLine)
-            parent.childLines.push(shortestLine)
-        }
+        parent.children.forEach(child => {
+            var name = parent.polygon.text + '|' + child.polygon.text
+                if (names.indexOf(name) == -1) {
+                    var line = calculateLine(
+                    parentConnectionPoints,
+                    parent.polygon,
+                    child.polygon,
+                    name
+                )
 
-        calculateLines(child)
-    })
+                if (line) {
+                    names.push(line.objects[2])
+                    child.lines.push(line)
+                }
+            }
+
+            calculate(child)
+        })
+    }
+
+    calculate(graph)
 }
 
 
@@ -698,16 +689,10 @@ function drawLine(line) {
     $svg = document.body.querySelector('svg.lines')
     var svgNamespace = $svg.namespaceURI
     var $line = document.createElementNS(svgNamespace, 'line')
-    $line.setAttribute('x1', line.startPoint.x)
-    $line.setAttribute('y1', line.startPoint.y)
 
-    $line.setAttribute('x2', line.endPoint.x)
-    $line.setAttribute('y2', line.endPoint.y)
+    moveLinePoints($line, line)
 
-
-    //$line.style.stroke = 'rgba(255, 255, 255, 1)'
     $line.style.stroke = 'rgba(0, 0, 0, 1)'
-    //$line.style.stroke = 'red'
     $line.style.strokeWidth = '2'
     $svg.appendChild($line)
 
@@ -715,8 +700,15 @@ function drawLine(line) {
 }
 
 
+function moveLinePoints($line, line) {
+    throwIfNotInstanceOf(line, Line)
 
+    $line.setAttribute('x1', line.startPoint.x)
+    $line.setAttribute('y1', line.startPoint.y)
 
+    $line.setAttribute('x2', line.endPoint.x)
+    $line.setAttribute('y2', line.endPoint.y)
+}
 
 function drawLines(parent) {
     parent.children.forEach(child => {
@@ -727,9 +719,9 @@ function drawLines(parent) {
     })
 }
 
-function drawNode(parent, $page) {
+function drawNode(parent, $page, colors) {
     parent.children.forEach(child => {
-        drawPolygon(child, $page)
+        drawPolygon(child, $page, colors)
         drawNode(child, $page)
     })
 }
@@ -747,7 +739,6 @@ function drawPage(graph) {
     $lines.style.height = $page.style.height
     $lines.style.width = $page.style.width
 
-    //$page.style.backgroundColor = '#EEEEEE'
     document.body.appendChild($page)
 
     return $page
@@ -852,7 +843,9 @@ function createGraphFromSchema(schema) {
 }
 
 function clearPage() {
-    [].forEach.call(document.querySelectorAll('line, .page, .graph-lines'), $ => $.remove())
+    [].forEach.call(
+        document.querySelectorAll('line, .page, .graph-lines'), $ => $.remove()
+    )
 }
 
 function drawGraphLines(graph, spacing, colors) {
@@ -897,6 +890,8 @@ function Mover(graph) {
     this.offsetPoint = null
     this.polygon = null
     this.zIndex = 10
+    this.lines = []
+    this.$hoverNode = null
 
     function findPolygon(parent, $node) {
         for (var child of parent.children) {
@@ -913,16 +908,53 @@ function Mover(graph) {
         }
     }
 
+    function findLines(graph, poly) {
+        var lines = []
+        var names = []
+        function find(parent) {
+            parent.lines.forEach(line => {
+                if (line.objects[0] === poly || line.objects[1] === poly) {
+                    if (names.indexOf(line.objects[2]) == -1) {
+                        names.push(line.objects[2])
+                        lines.push(line)
+                    }
+                }
+            })
+
+            if (parent.children) {
+                parent.children.forEach(find)
+            }
+        }
+
+        find(graph)
+
+        return lines
+    }
 
     this.start = function ($node) {
         this.$node = $node
         this.offsetPoint = null
         $node.style.zIndex = this.zIndex
+        this.polygon = findPolygon(this.graph, this.$node)
+        this.lines = findLines(this.graph, this.polygon)
     }
 
     this.stop = function () {
         this.$node = null
+        this.lines = []
         this.zIndex++
+    }
+
+    this.over = function ($hoverNode) {
+        /*if (!this.$node) {
+            this.$hoverNode = $hoverNode
+        }*/
+    }
+
+    this.out = function () {
+        /*if (!this.$node) {
+            this.$hoverNode = null
+        }*/
     }
 
     this.moveMouse = function (event) {
@@ -932,7 +964,6 @@ function Mover(graph) {
 
         var pointerPoint = new Point(event.pageX, event.pageY)
         if (this.offsetPoint == null) {
-            this.polygon = findPolygon(this.graph, this.$node)
             this.offsetPoint = Point.subtract(pointerPoint, this.polygon.points.topLeft)
         }
 
@@ -967,6 +998,25 @@ function Mover(graph) {
 
         this.polygon.moveTopLeftTo(newTopLeft)
 
+
+        var ownConnectionPoints = {}
+        Object.keys(this.polygon.points).forEach(k => {
+            if (k.indexOf('connection') > -1) {
+                ownConnectionPoints[k] = this.polygon.points[k]
+            }
+        })
+
+        this.lines.forEach(line => {
+            var templine = calculateLine(
+                ownConnectionPoints,
+                this.polygon,
+                line.objects[(this.polygon == line.objects[1]) ? 0 : 1]
+            )
+            line.startPoint = templine.startPoint
+            line.endPoint = templine.endPoint
+            moveLinePoints(line.$element, line)
+        })
+
         this.$node.style.left = this.polygon.points.topLeft.x + 'px'
         this.$node.style.top = this.polygon.points.topLeft.y + 'px'
     }
@@ -974,7 +1024,7 @@ function Mover(graph) {
 
 var mover = null
 
-function drawGraphFromSchema(schema) {
+function drawGraphFromSchema(schema, colors={}) {
     var graph = createGraphFromSchema(schema)
 
     calculatePositions(graph)
@@ -985,7 +1035,7 @@ function drawGraphFromSchema(schema) {
     var $page = drawPage(graph)
     calculateLines(graph)
 
-    drawNode(graph, $page)
+    drawNode(graph, $page, colors)
     drawLines(graph)
 
     drawGraphLines(graph, 20, ['#EEEEFF', '#DDDDEE'])
@@ -993,6 +1043,16 @@ function drawGraphFromSchema(schema) {
 }
 
 function goDev() {
+    var colors = {
+        'table1': '#335566',
+        'table1.5': '#99FF45',
+        'table2': '#BB7766',
+        'table3': '#CCEEFF',
+        'table4': '#FFAA88',
+        'table5': '#889933',
+        'table6': '#345433',
+        //'table7': '#FF5555'
+    }
     var schema = {
         'table1': {},
         'table1.5': {'table1': 'sdf'},
@@ -1004,7 +1064,7 @@ function goDev() {
         'table7': {}
     }
 
-    drawGraphFromSchema(schema)
+    drawGraphFromSchema(schema, colors)
 }
 function go() {
     hostClient.bind('schema-new', drawGraphFromSchema)
@@ -1028,6 +1088,18 @@ window.addEventListener('mousedown', function (event) {
 
 window.addEventListener('mouseup', () => mover && mover.stop())
 window.addEventListener('mousemove', (e) => mover && mover.moveMouse(e))
+window.addEventListener('mousemove', function (event) {
+    if (!mover) {
+        return false
+    }
+
+    if (!event.target.classList.contains('node')) {
+        mover.over(event.target)
+    } else {
+        mover.out()
+    }
+})
+
 
 //window.onerror = alert
 </script>
