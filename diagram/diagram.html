@@ -44,13 +44,14 @@ svg.lines {
     text-align: center;
     /*line-height: 100px;*/
     z-index: 2;
-    cursor: move;
+    cursor: pointer;
     box-shadow: 4px 2px 10px -1px rgba(0,0,0,0.58);
 }
 
 .node:hover {
     /*background-color: rgba(255, 255, 255, .2);*/
     border: 1px solid rgba(255, 255, 255, 1);
+    font-weight: bold;
 }
 
 </style>
@@ -393,16 +394,17 @@ var polyPoints = {
     'connection4': new Point(nodeWidth - cornerPadding, nodeHeight - cornerPadding)
 }
 
-
+var pageWidth = 2000
+var pageHeight = 2000
 var pagePoints = {
     'topLeft': new Point(0, 0),
-    'topRight': new Point(1500, 0),
-    'bottomRight': new Point(1500, 1000),
-    'bottomLeft': new Point(0, 1000),
-    'center': new Point(750, 500),
+    'topRight': new Point(pageWidth, 0),
+    'bottomRight': new Point(pageWidth, pageHeight),
+    'bottomLeft': new Point(0, pageHeight),
+    'center': new Point(pageWidth / 2, pageHeight),
 
     'marginTopLeft': new Point(20, 20),
-    'marginBottomRight': new Point(1500 - 20, 1000 - 20)
+    'marginBottomRight': new Point(pageWidth - 20, pageHeight - 20)
 }
 
 function drawPolygon(child, $page, colors) {
@@ -431,9 +433,11 @@ function drawPolygon(child, $page, colors) {
 
 function calculatePositions(graph, level=0) {
     if (graph.children.length > 1) {
-        var radius = 256.546 - (level * 80.654)
-        if (radius < 50) {
-            radius = 50
+        //var radius = 256.546 - (level * 80.654)
+        var radius = 20 + (graph.children.length * 30)
+
+        if (radius > 1000) {
+            radius = 1000
         }
 
         var childrenToLayOut = 0
@@ -892,6 +896,7 @@ function Mover(graph) {
     this.zIndex = 10
     this.lines = []
     this.$hoverNode = null
+    this.state = null
 
     function findPolygon(parent, $node) {
         for (var child of parent.children) {
@@ -931,6 +936,11 @@ function Mover(graph) {
         return lines
     }
 
+    this.select = function ($node) {
+        hostClient.query('selected', findPolygon(this.graph, $node).text)
+    }
+
+
     this.start = function ($node) {
         this.$node = $node
         this.offsetPoint = null
@@ -940,18 +950,26 @@ function Mover(graph) {
     }
 
     this.stop = function () {
-        this.$node = null
-        this.lines = []
-        this.zIndex++
+        if (this.$node) {
+            this.$node = null
+            this.lines = []
+            this.zIndex++
+            this.storeState()
+        }
     }
 
     this.over = function ($hoverNode) {
+        hostClient.query(
+            'hover_table_set',
+            findPolygon(this.graph, $hoverNode).text
+        )
         /*if (!this.$node) {
             this.$hoverNode = $hoverNode
         }*/
     }
 
     this.out = function () {
+        hostClient.query('hover_table_clear')
         /*if (!this.$node) {
             this.$hoverNode = null
         }*/
@@ -1020,6 +1038,34 @@ function Mover(graph) {
         this.$node.style.left = this.polygon.points.topLeft.x + 'px'
         this.$node.style.top = this.polygon.points.topLeft.y + 'px'
     }
+
+    this.storeState = function() {
+        function branch(parent, nodesWithTopLeft={}) {
+            if (parent.polygon && parent.polygon.text) {
+                nodesWithTopLeft[parent.polygon.text] = [
+                    parent.polygon.points.topLeft.x,
+                    parent.polygon.points.topLeft.y
+                ]
+
+                if (parent.polygon.$element && parent.polygon.$element.style.zIndex) {
+                    nodesWithTopLeft[parent.polygon.text].push(parent.polygon.$element.style.zIndex)
+                }
+            }
+
+            if (parent.children) {
+                parent.children.forEach(child => {
+                    nodesWithTopLeft = Object.assign(
+                        nodesWithTopLeft,
+                        branch(child, nodesWithTopLeft)
+                    )
+                })
+            }
+
+            return nodesWithTopLeft
+        }
+
+        this.state = branch(this.graph)
+    }
 }
 
 var mover = null
@@ -1066,7 +1112,9 @@ function goDev() {
 
     drawGraphFromSchema(schema, colors)
 }
+
 function go() {
+    hostClient.bind('release', () => mover && mover.stop())
     hostClient.bind('schema-new', drawGraphFromSchema)
     hostClient.ready(function () {
         hostClient.query('schema', null, drawGraphFromSchema)
@@ -1093,13 +1141,25 @@ window.addEventListener('mousemove', function (event) {
         return false
     }
 
-    if (!event.target.classList.contains('node')) {
+    if (event.target.classList.contains('node')) {
         mover.over(event.target)
     } else {
         mover.out()
     }
 })
 
+
+window.addEventListener('click', function (event) {
+    if (!mover) {
+        return false
+    }
+
+    if (event.target.classList.contains('node')) {
+        mover.select(event.target)
+    }
+})
+
+//window.addEventListener('keydown', () => mover && alert(JSON.stringify(mover.state)))
 
 //window.onerror = alert
 </script>

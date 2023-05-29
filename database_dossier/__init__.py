@@ -142,6 +142,20 @@ class MainWindow(QMainWindow, WindowMixin):
                         self.connections.active_connection['database']
                     )
                 )
+
+                self.diagram.bind('selected', self.show_table_schema)
+
+                #context_menu = self.extra_ui.get_menu_action('editor')
+
+                #self.diagram.bind('context_menu_table', lambda pos, table_name:
+                #    context_menu.exec_(pos)
+                #)
+
+                self.diagram.bind('context_menu_table', lambda pos, table_name:
+                    print(table_name)
+                )
+
+                #self.diagram.bind('selected', self.connections.table_section_highlight)
                 self.diagram.setup()
             else:
                 self.diagram.draw_schema(self.connections.active_connection_schema(
@@ -152,7 +166,7 @@ class MainWindow(QMainWindow, WindowMixin):
         text_cursor = self.text_edit_sql.textCursor()
         text_cursor.selectedText()
         current_position = text_cursor.position()
-        
+
         text_cursor.clearSelection()
         text_cursor.movePosition(QTextCursor.Start, QTextCursor.MoveAnchor)
 
@@ -171,7 +185,7 @@ class MainWindow(QMainWindow, WindowMixin):
         )
 
         text_cursor.selectedText()
-        
+
         self.text_edit_sql.setTextCursor(text_cursor)
 
 
@@ -273,7 +287,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.f('connection_indicator').setText('')
 
 
-    def show_table(self, table_name):
+    def show_table(self, table_name, show_schema = False):
         max_records = 1000
         table_name_clean = repr(table_name)[1:-1]
 
@@ -292,7 +306,14 @@ class MainWindow(QMainWindow, WindowMixin):
             max_records
         ))
 
-        self.tab_result_sets.setCurrentIndex(0)
+        if show_schema:
+            self.tab_result_sets.setCurrentIndex(1)
+        else:
+            self.tab_result_sets.setCurrentIndex(0)
+
+
+    def show_table_schema(self, table_name):
+        self.show_table(table_name, True)
 
 
     def error_handler(self, errors):
@@ -348,12 +369,12 @@ class MainWindow(QMainWindow, WindowMixin):
     def setup_state(self):
         self.state = load_state()
         self.setup_connections()
-        
+
         self.text_editor.plain_text = self.state.editor_sql
 
 
     def setup_text_editor(self):
-        def update_cb(can_undo, can_redo): 
+        def update_cb(can_undo, can_redo):
             self.action_undo.setEnabled(can_undo)
             self.action_redo.setEnabled(can_redo)
             self.extra_ui.action_undo_extra.setEnabled(can_undo)
@@ -470,6 +491,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.execute_3.clicked.connect(lambda: self.execute(2))
         self.table_query.currentChanged.connect(self.highlight_log)
         self.table_query.currentChanged.connect(self.show_diagram)
+
 
         # Must be last
         self.setup_state()

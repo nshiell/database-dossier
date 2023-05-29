@@ -25,16 +25,45 @@ import json
 class Diagram(QObject):
     def __init__(self, q_webview, schema):
         super().__init__()
+        self.hover_table = None
         self._doc_dir = None
         self.schema = schema
+        self.event_bindings = {}
         self.q_webview = q_webview
         self.q_webview.setContextMenuPolicy(Qt.CustomContextMenu)
         self.q_webview.customContextMenuRequested.connect(lambda:
-            self.trigger('context_menu', (QCursor.pos(),))
+            self.execute_javascript("hostClient.event('release', 'null')")
         )
+
+        self.q_webview.customContextMenuRequested.connect(self.context_menu_table)
+
         q_webview.setUrl(
             QUrl('file:///' + self.doc_dir.replace('\\', '/') + '/diagram.html')
         )
+
+
+    def context_menu_table(self):
+        if self.hover_table:
+            self.trigger('context_menu_table', (
+                QCursor.pos(),
+                self.hover_table
+            ))
+
+
+    def trigger(self, event_name, args=None):
+        if event_name in self.event_bindings:
+            for binding in self.event_bindings[event_name]:
+                if args is None:
+                    binding()
+                else:
+                    binding(*args)
+
+
+    def bind(self, event_name, event_callback):
+        if event_name not in self.event_bindings:
+            self.event_bindings[event_name] = []
+
+        self.event_bindings[event_name].append(event_callback)
 
 
     def setup(self):
@@ -74,6 +103,15 @@ class Diagram(QObject):
                 json.dumps(self.schema)
             )
             self.execute_javascript(javascript)
+
+        elif parts[1] == 'selected':
+            self.trigger('selected', [json.loads(parts[2])])
+
+        elif parts[1] == 'hover_table_set':
+            self.hover_table = json.loads(parts[2])
+
+        elif parts[1] == 'hover_table_clear':
+            self.hover_table = None
 
     @property
     def doc_dir(self):
