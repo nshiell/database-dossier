@@ -134,33 +134,18 @@ class MainWindow(QMainWindow, WindowMixin):
 
 
     def show_diagram(self, new_index):
-        if new_index == 1:
-            if self.diagram == None:
-                self.diagram = Diagram(
-                    self.web_view_diagram,
-                    self.connections.active_connection_schema(
-                        self.connections.active_connection['database']
-                    )
-                )
+        if new_index != 1:
+            return None
 
-                self.diagram.bind('selected', self.show_table_schema)
+        if self.diagram == None:
+            self.diagram = Diagram(self.web_view_diagram)
+            self.diagram.bind('selected', self.show_table_schema)
+            self.diagram.bind('context_menu_table', lambda pos, table_name:
+                print(table_name)
+            )
+            self.diagram.setup()
 
-                #context_menu = self.extra_ui.get_menu_action('editor')
-
-                #self.diagram.bind('context_menu_table', lambda pos, table_name:
-                #    context_menu.exec_(pos)
-                #)
-
-                self.diagram.bind('context_menu_table', lambda pos, table_name:
-                    print(table_name)
-                )
-
-                #self.diagram.bind('selected', self.connections.table_section_highlight)
-                self.diagram.setup()
-            else:
-                self.diagram.draw_schema(self.connections.active_connection_schema(
-                        self.connections.active_connection['database']
-                ))
+        self.diagram.schema = self.connections.active_schema
 
     def select_sql_fragment(self, start_point, end_point):
         text_cursor = self.text_edit_sql.textCursor()
@@ -279,9 +264,7 @@ class MainWindow(QMainWindow, WindowMixin):
             if database:
                 self.f('connection_indicator').setText(database)
                 if self.diagram:
-                    self.diagram.draw_schema(self.connections.active_connection_schema(
-                            self.connections.active_connection['database']
-                    ))
+                    self.diagram.schema = self.connections.active_schema
         else:
             self.f('db_name').setText('')
             self.f('connection_indicator').setText('')

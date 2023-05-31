@@ -208,7 +208,8 @@ class ConnectionList(list):
         return cursor
 
 
-    def active_connection_schema(self, database_name):
+    @property
+    def active_schema(self):
         sql = '''
             SELECT
                 tables.table_name,
@@ -232,9 +233,10 @@ class ConnectionList(list):
                 WHERE
                     information_schema.tables.table_schema = '%s';
         '''
-        tables = {}
 
-        for result in self.execute_active_connection_cursor(sql % database_name):
+        tables = {}
+        results = self.execute_active_connection_cursor(sql % self.active_connection['database'])
+        for result in results:
             if result[0] not in tables:
                 tables[result[0]] = {}
 

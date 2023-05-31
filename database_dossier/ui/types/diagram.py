@@ -23,18 +23,14 @@ import os
 import json
 
 class Diagram(QObject):
-    def __init__(self, q_webview, schema):
+    def __init__(self, q_webview):
         super().__init__()
         self.hover_table = None
         self._doc_dir = None
-        self.schema = schema
+        self._schema = None
         self.event_bindings = {}
         self.q_webview = q_webview
         self.q_webview.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.q_webview.customContextMenuRequested.connect(lambda:
-            self.execute_javascript("hostClient.event('release', 'null')")
-        )
-
         self.q_webview.customContextMenuRequested.connect(self.context_menu_table)
 
         q_webview.setUrl(
@@ -81,8 +77,13 @@ class Diagram(QObject):
         #self.web_view.page().runJavaScript(javascript)
         self.q_webview.page().mainFrame().evaluateJavaScript(javascript)
 
+    @property
+    def schema(self):
+        return self._schema
 
-    def draw_schema(self, schema):
+    @schema.setter
+    def schema(self, schema):
+        self._schema = schema
         javascript = "hostClient.event('%s', '%s')" % (
             'schema-new',
             json.dumps(schema)
@@ -112,6 +113,8 @@ class Diagram(QObject):
 
         elif parts[1] == 'hover_table_clear':
             self.hover_table = None
+
+#border_color = self.palette().color(QPalette.Link).name()
 
     @property
     def doc_dir(self):
