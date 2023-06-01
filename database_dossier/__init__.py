@@ -139,13 +139,37 @@ class MainWindow(QMainWindow, WindowMixin):
 
         if self.diagram == None:
             self.diagram = Diagram(self.web_view_diagram)
-            self.diagram.bind('selected', self.show_table_schema)
+            self.diagram.bind('selected', self.show_table_schema)            
             self.diagram.bind('context_menu_table', lambda pos, table_name:
                 print(table_name)
             )
             self.diagram.setup()
 
         self.diagram.schema = self.connections.active_schema
+        
+        colors = self.palette().color
+        # 'thumbBackgroundColor'       : colors(QPalette.Link).name(),
+        self.diagram.colors = {
+                'thumbBackgroundColor'       : colors(QPalette.Light).name(),
+                'thumbBorderColor'           : colors(QPalette.Button).name(),
+    
+                'thumbBackgroundColorActive' : 'green',
+                'thumbBorderColorActive'     : 'blue',
+    
+                'thumbBackgroundColorHover'  : colors(QPalette.Link).name(),
+                'thumbBorderColorHover'      : 'yellow',
+    
+                'trackBackgroundColor'       : 'white',
+                'trackBorderColor'           : 'white',
+    
+                'trackBackgroundColorActive' : 'purple',
+                'trackBorderColorActive'     : 'orange',
+    
+                'trackBackgroundColorHover'  : 'black',
+                'trackBorderColorHover'      : 'red'
+            }
+
+        print(self.diagram.colors)
 
     def select_sql_fragment(self, start_point, end_point):
         text_cursor = self.text_edit_sql.textCursor()

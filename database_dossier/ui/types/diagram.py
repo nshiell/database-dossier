@@ -28,6 +28,7 @@ class Diagram(QObject):
         self.hover_table = None
         self._doc_dir = None
         self._schema = None
+        self.colors = None
         self.event_bindings = {}
         self.q_webview = q_webview
         self.q_webview.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -77,9 +78,11 @@ class Diagram(QObject):
         #self.web_view.page().runJavaScript(javascript)
         self.q_webview.page().mainFrame().evaluateJavaScript(javascript)
 
+
     @property
     def schema(self):
         return self._schema
+
 
     @schema.setter
     def schema(self, schema):
@@ -102,6 +105,13 @@ class Diagram(QObject):
             javascript = "hostClient.response(%d, %s)" % (
                 int(parts[0]),
                 json.dumps(self.schema)
+            )
+            self.execute_javascript(javascript)
+
+        if parts[1] == 'colors':
+            javascript = "hostClient.response(%d, %s)" % (
+                int(parts[0]),
+                json.dumps(self.colors)
             )
             self.execute_javascript(javascript)
 
