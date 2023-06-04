@@ -20,7 +20,7 @@ from numbers import Number
 from datetime import datetime, date
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import *
 
 class TableModel(QAbstractTableModel):
     def __init__(self, record_set_colors):
@@ -76,7 +76,33 @@ class TableModel(QAbstractTableModel):
             )
 
             if right:
-                return QVariant(Qt.AlignRight | Qt.AlignVCenter)
+                return QVariant(Qt.AlignRight + Qt.AlignVCenter)
+
+            center = (
+                text is None
+            )
+
+            if center:
+                return QVariant(Qt.AlignCenter + Qt.AlignVCenter)
+
+        elif role == Qt.FontRole:
+            italic = (
+                text is None
+            )
+
+            if italic:
+                font = QFont()
+                font.setItalic(True)
+                return font
+
+            bold = (
+                isinstance(text, Number)
+            )
+
+            if bold:
+                font = QFont()
+                font.setBold(True)
+                return font
 
         elif role == Qt.DisplayRole:
             if isinstance(text, (bytes, bytearray)):
