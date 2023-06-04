@@ -33,10 +33,18 @@ class Diagram(QObject):
         self.q_webview = q_webview
         self.q_webview.setContextMenuPolicy(Qt.CustomContextMenu)
         self.q_webview.customContextMenuRequested.connect(self.context_menu_table)
-
+        QApplication.instance().focusChanged.connect(self.focusChanged)
         q_webview.setUrl(
             QUrl('file:///' + self.doc_dir.replace('\\', '/') + '/diagram.html')
         )
+
+
+    def focusChanged(self, new, old):
+        if old == self.q_webview:
+            self.execute_javascript("hostClient.event('blur', null)")
+        elif new == self.q_webview:
+            self.execute_javascript("hostClient.event('focus', null)")
+
 
 
     def context_menu_table(self):

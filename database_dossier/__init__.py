@@ -146,30 +146,14 @@ class MainWindow(QMainWindow, WindowMixin):
             self.diagram.setup()
 
         self.diagram.schema = self.connections.active_schema
-        
-        colors = self.palette().color
-        # 'thumbBackgroundColor'       : colors(QPalette.Link).name(),
-        self.diagram.colors = {
-                'thumbBackgroundColor'       : colors(QPalette.Light).name(),
-                'thumbBorderColor'           : colors(QPalette.Button).name(),
-    
-                'thumbBackgroundColorActive' : 'green',
-                'thumbBorderColorActive'     : 'blue',
-    
-                'thumbBackgroundColorHover'  : colors(QPalette.Link).name(),
-                'thumbBorderColorHover'      : 'yellow',
-    
-                'trackBackgroundColor'       : 'white',
-                'trackBorderColor'           : 'white',
-    
-                'trackBackgroundColorActive' : 'purple',
-                'trackBorderColorActive'     : 'orange',
-    
-                'trackBackgroundColorHover'  : 'black',
-                'trackBorderColorHover'      : 'red'
-            }
 
-        print(self.diagram.colors)
+        colors = self.palette().color
+        self.diagram.colors = {
+            'thumbBackgroundColor'       : colors(QPalette.ToolTipBase).name(),
+            'thumbBackgroundColorHover'  : colors(QPalette.Link).name(),
+            'thumbBorderColorHover'      : colors(QPalette.Link).name(),
+        }
+
 
     def select_sql_fragment(self, start_point, end_point):
         text_cursor = self.text_edit_sql.textCursor()
