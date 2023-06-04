@@ -133,27 +133,39 @@ class MainWindow(QMainWindow, WindowMixin):
         )
 
 
+    def setup_diagram(self):
+        self.diagram = Diagram(self.web_view_diagram)
+        self.diagram.bind('selected', self.show_table_schema)
+        self.diagram.bind('context_menu_table', lambda pos, table_name:
+            print(table_name)
+        )
+        self.diagram.setup()
+
+        colors = self.palette().color
+        self.diagram.page_colors = {
+            'thumbBackgroundColor'      : colors(QPalette.ToolTipBase).name(),
+            'thumbBackgroundColorHover' : colors(QPalette.Link).name(),
+            'thumbBorderColorHover'     : colors(QPalette.Link).name(),
+        }
+
+
     def show_diagram(self, new_index):
         if new_index != 1:
             return None
 
         if self.diagram == None:
-            self.diagram = Diagram(self.web_view_diagram)
-            self.diagram.bind('selected', self.show_table_schema)            
-            self.diagram.bind('context_menu_table', lambda pos, table_name:
-                print(table_name)
-            )
-            self.diagram.setup()
+            self.setup_diagram()
 
-        self.diagram.schema = self.connections.active_schema
+        self.show_schema_in_diagram()
 
-        colors = self.palette().color
+
+    def show_schema_in_diagram(self):
+        cons = self.connections
         self.diagram.colors = {
-            'thumbBackgroundColor'       : colors(QPalette.ToolTipBase).name(),
-            'thumbBackgroundColorHover'  : colors(QPalette.Link).name(),
-            'thumbBorderColorHover'      : colors(QPalette.Link).name(),
+            k : cons.find_color_for_table(k) for k in cons.active_schema.keys()
         }
 
+        self.diagram.schema = cons.active_schema
 
     def select_sql_fragment(self, start_point, end_point):
         text_cursor = self.text_edit_sql.textCursor()
@@ -272,7 +284,7 @@ class MainWindow(QMainWindow, WindowMixin):
             if database:
                 self.f('connection_indicator').setText(database)
                 if self.diagram:
-                    self.diagram.schema = self.connections.active_schema
+                    self.show_schema_in_diagram()
         else:
             self.f('db_name').setText('')
             self.f('connection_indicator').setText('')

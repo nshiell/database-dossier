@@ -46,6 +46,25 @@ svg.lines {
     z-index: 2;
     cursor: pointer;
     box-shadow: 4px 2px 10px -1px rgba(0,0,0,0.58);
+    transition: opacity .5s;
+}
+
+.node.dragging {
+    cursor: move;
+}
+
+.over-node .node {
+    opacity: .2;
+}
+
+.over-node svg.lines .line {
+    opacity: .2;
+    transition: opacity .5s;
+}
+
+svg.lines .line.active, .node.active {
+    opacity: 1;
+    transition: opacity 0s;
 }
 
 .node:hover {
@@ -90,7 +109,7 @@ class HostClient {
 
     response (index, jsonText) {
         if (!this.callbacks[index]) {
-            $('body').html('fail' + $('body').html())
+            //$('body').html('fail' + $('body').html())
             return null
         }
 
@@ -100,7 +119,7 @@ class HostClient {
 
     event (name, jsonText) {
         if (!this.callbacks[name]) {
-            $('body').html('fail' + $('body').html())
+            //$('body').html('fail' + $('body').html())
             return null
         }
 
@@ -416,10 +435,9 @@ function drawPolygon(child, $page, colors) {
     $element.style.left = child.polygon.points.topLeft.x + 'px'
     $element.style.top = child.polygon.points.topLeft.y + 'px'
 
-
-
     $element.style.width = (child.polygon.points.topRight.x - child.polygon.points.topLeft.x) + 'px'
     $element.style.height = (child.polygon.points.bottomLeft.y - child.polygon.points.topLeft.y) + 'px'
+    //alert(colors['user'])
     if (child.polygon.text) {
         if (colors && colors[child.polygon.text]) {
             $element.style.backgroundColor = colors[child.polygon.text]
@@ -693,6 +711,7 @@ function drawLine(line) {
     $svg = document.body.querySelector('svg.lines')
     var svgNamespace = $svg.namespaceURI
     var $line = document.createElementNS(svgNamespace, 'line')
+    $line.classList.add('line')
 
     moveLinePoints($line, line)
 
@@ -723,11 +742,15 @@ function drawLines(parent) {
     })
 }
 
-function drawNode(parent, $page, colors) {
-    parent.children.forEach(child => {
-        drawPolygon(child, $page, colors)
-        drawNode(child, $page)
-    })
+function drawNodes(graph, $page, colors) {
+    function draw(parent) {
+        parent.children.forEach(child => {
+            drawPolygon(child, $page, colors)
+            draw(child)
+        })
+    }
+
+    draw(graph)
 }
 
 function drawPage(graph) {
@@ -898,6 +921,41 @@ function Mover(graph) {
     this.$hoverNode = null
     this.state = null
 
+    this.findRelatives = function ($node) {
+        var poly = findPolygon(this.graph, $node)
+        var polyNodes = [$node]
+        var lines = []
+
+        function addPolyNode($element) {
+            var inArray = polyNodes.filter(e => e.$element === $element).length
+            if (!inArray.length) {
+                polyNodes.push($element)
+            }
+        }
+
+        function find(parent) {
+            parent.lines.forEach(line => {
+                if (line.objects[0] === poly || line.objects[1] === poly) {
+                    lines.push(line.$element)
+
+                    if (line.objects[0] === poly) {
+                        addPolyNode(line.objects[1].$element)
+                    } else {
+                        addPolyNode(line.objects[0].$element)
+                    }
+                }
+            })
+
+            if (parent.children) {
+                parent.children.forEach(find)
+            }
+        }
+
+        find(this.graph)
+
+        return {lines: lines, polygons: polyNodes}
+    }
+
     function findPolygon(parent, $node) {
         for (var child of parent.children) {
             if (child.polygon.$element === $node) {
@@ -942,6 +1000,7 @@ function Mover(graph) {
 
 
     this.start = function ($node) {
+        $node.classList.add('dragging')
         this.$node = $node
         this.offsetPoint = null
         $node.style.zIndex = this.zIndex
@@ -951,6 +1010,7 @@ function Mover(graph) {
 
     this.stop = function () {
         if (this.$node) {
+            this.$node.classList.remove('dragging')
             this.$node = null
             this.lines = []
             this.zIndex++
@@ -959,20 +1019,31 @@ function Mover(graph) {
     }
 
     this.over = function ($hoverNode) {
-        hostClient.query(
+        /*hostClient.query(
             'hover_table_set',
             findPolygon(this.graph, $hoverNode).text
-        )
-        /*if (!this.$node) {
+        )*/
+        document.body.classList.add('over-node')
+        var others = this.findRelatives($hoverNode)
+        others.polygons.forEach($n => $n.classList.add('active'))
+        others.lines.forEach($n => $n.classList.add('active'))
+        //var poly = findPolygon(this.graph, $hoverNode).text
+
+        if (!this.$node) {
             this.$hoverNode = $hoverNode
-        }*/
+        }
     }
 
     this.out = function () {
-        hostClient.query('hover_table_clear')
-        /*if (!this.$node) {
+        //hostClient.query('hover_table_clear')
+        if (!this.$node) {
             this.$hoverNode = null
-        }*/
+            document.body.classList.remove('over-node')
+            var sel = document.querySelectorAll('.node.active, .line.active')
+            ;[].forEach.call(sel, function ($n) {
+                $n.classList.remove('active')
+            })
+        }
     }
 
     this.moveMouse = function (event) {
@@ -1068,58 +1139,57 @@ function Mover(graph) {
     }
 }
 
+function moveToOverridePositions(graph, positions) {
+    function move(parent) {
+        var pos = positions[parent.polygon.text]
+        if (pos) {
+            parent.polygon.moveTopLeftTo(new Point(pos.x, pos.y))
+        }
+
+        if (parent.children) {
+            parent.children.forEach(move)
+        }
+    }
+
+    move(graph)
+}
+
 var mover = null
 
-function drawGraphFromSchema(schema, colors={}) {
+function drawGraph(schemaWithMeta) {
+    drawGraphFromSchema(
+        schemaWithMeta.schema,
+        schemaWithMeta.pos,
+        schemaWithMeta.colors
+    )
+}
+
+function drawGraphFromSchema(schema, overridePositions={}, colors={}) {
     var graph = createGraphFromSchema(schema)
 
     calculatePositions(graph)
     moveGraphLeft(graph)
+    moveToOverridePositions(graph, overridePositions)
+
     constrineGraph(graph)
     clearPage()
 
     var $page = drawPage(graph)
     calculateLines(graph)
 
-    drawNode(graph, $page, colors)
+    drawNodes(graph, $page, colors)
     drawLines(graph)
 
     drawGraphLines(graph, 20, ['#EEEEFF', '#DDDDEE'])
     mover = new Mover(graph)
 }
 
-function goDev() {
-    styleScrollbars('gfsdfg')
-    var colors = {
-        'table1': '#335566',
-        'table1.5': '#99FF45',
-        'table2': '#BB7766',
-        'table3': '#CCEEFF',
-        'table4': '#FFAA88',
-        'table5': '#889933',
-        'table6': '#345433',
-        //'table7': '#FF5555'
-    }
-    var schema = {
-        'table1': {},
-        'table1.5': {'table1': 'sdf'},
-        'table2': {'table1': 'sdf'},
-        'table3': {'table2': 'sdf'},
-        'table4': {'table2': 'sdf'},
-        'table5': {'table1': 'sdf', 'table4': 'sfg'},
-        'table6': {},
-        'table7': {}
-    }
-
-    drawGraphFromSchema(schema, colors)
-}
-
 function go() {
     //hostClient.bind('release', () => mover && mover.stop())
     hostClient.ready(function () {
-        hostClient.bind('schema-new', drawGraphFromSchema)
-        hostClient.query('schema', null, drawGraphFromSchema)
-        hostClient.query('colors', null, styleScrollbars)
+        hostClient.bind('schema-new', drawGraph)
+        hostClient.query('schema', null, drawGraph)
+        hostClient.query('page_colors', null, styleScrollbars)
         hostClient.bind('blur', () => document.body.classList.remove('active'))
         hostClient.bind('focus', () => document.body.classList.add('active'))
     })

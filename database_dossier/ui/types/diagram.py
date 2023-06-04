@@ -38,7 +38,8 @@ class Diagram(QObject):
         self.hover_table = None
         self._doc_dir = None
         self._schema = None
-        self.colors = None
+        self.page_colors = {}
+        self.colors = {}
         self.event_bindings = {}
         self.q_webview = q_webview
         self.q_webview.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -111,7 +112,11 @@ class Diagram(QObject):
         self._schema = schema
         javascript = "hostClient.event('%s', '%s')" % (
             'schema-new',
-            json.dumps(schema)
+            json.dumps({
+                'schema': self.schema,
+                'pos': {'user': {'x': 100, 'y': 300}},
+                'colors': self.colors
+            })
         )
         self.execute_javascript(javascript)
 
@@ -126,16 +131,20 @@ class Diagram(QObject):
         if parts[1] == 'schema':
             javascript = "hostClient.response(%d, %s)" % (
                 int(parts[0]),
-                json.dumps(self.schema)
+                json.dumps({
+                    'schema': self.schema,
+                    'pos': {'user': {'x': 100, 'y': 300}},
+                    'colors': self.colors
+                })
             )
             self.execute_javascript(javascript)
 
-        if parts[1] == 'colors':
-            colors = self.colors
-            colors['web_engine'] = load_web_engine_if_needed()
+        if parts[1] == 'page_colors':
+            page_colors = self.page_colors
+            page_colors['web_engine'] = load_web_engine_if_needed()
             javascript = "hostClient.response(%d, %s)" % (
                 int(parts[0]),
-                json.dumps(self.colors)
+                json.dumps(page_colors)
             )
             self.execute_javascript(javascript)
 
