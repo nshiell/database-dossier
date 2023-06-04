@@ -167,6 +167,12 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def show_schema_in_diagram(self):
         cons = self.connections
+
+        try:
+            active_schema = cons.active_schema
+        except:
+            return None
+
         should_override = (
             'diagram' in cons[cons.active_connection_index] and
             cons[cons.active_connection_index]['diagram'] is not None
@@ -178,10 +184,10 @@ class MainWindow(QMainWindow, WindowMixin):
             ]['diagram']
 
         self.diagram.colors = {
-            k : cons.find_color_for_table(k) for k in cons.active_schema.keys()
+            k : cons.find_color_for_table(k) for k in cons.active_schema
         }
 
-        self.diagram.schema = cons.active_schema
+        self.diagram.schema = active_schema
 
     def select_sql_fragment(self, start_point, end_point):
         text_cursor = self.text_edit_sql.textCursor()
