@@ -33,10 +33,11 @@ ${APPDIR}/usr/bin/python3 ${APPDIR}/opt/database-dossier/database-dossier.py $@'
 export CONDA_CHANNELS='conda-forge'
 
 # I think PyWebkit looks nicer than the new QtWebEngine
-export CONDA_PACKAGES='PyQtWebKit'
+#export CONDA_PACKAGES='PyQtWebKit; pyqt5 5.15.7'
+export CONDA_PACKAGES='PyQtWebKit';# pyqt5 5.15.7'
 
-# Install PyQt5 at this point - will insrtall the correct version
-export PIP_REQUIREMENTS='appdirs mysql_connector_python Pygments pyqt5'
+# Install PyQt5 at this point - will install the correct version
+export PIP_REQUIREMENTS='appdirs mysql_connector_python Pygments'
 
 # [Pour everything into a large bowl]
 mkdir -p ./AppDir/opt/database-dossier/artwork
@@ -44,6 +45,7 @@ cp ../artwork/*.png ./AppDir/opt/database-dossier/artwork/
 cp ../database-dossier.py ./AppDir/opt/database-dossier
 cp -R ../database_dossier ./AppDir/opt/database-dossier
 cp -R ../doc ./AppDir/opt/database-dossier
+cp -R ../diagram ./AppDir/opt/database-dossier
 
 echo "$APP_RUN" > ./AppDir/AppRun.sh
 
@@ -59,7 +61,7 @@ echo "$APP_RUN" > ./AppDir/AppRun.sh
 
 # The version of PyQt that is compatibile with PyQtWebKit has a nasty bug
 # this change makes things work
-sed -i 's/QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/#QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/g' AppDir/usr/conda/lib/python3.9/site-packages/PyQt5/uic/uiparser.py
+sed -i 's/QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/#QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/g' AppDir/usr/conda/lib/*/site-packages/PyQt5/uic/uiparser.py
 
 mkdir -p AppDir/usr/share/metainfo/
 echo '<?xml version="1.0" encoding="UTF-8"?>
