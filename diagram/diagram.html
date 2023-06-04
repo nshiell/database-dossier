@@ -310,8 +310,9 @@ Point.equals = function (point1, point2) {
 
 
 
-function Polygon(points, text=null) {
+function Polygon(points, text=null, zIndex=null) {
     this.text = text
+    this.zIndex = zIndex
     this.originalPoints = points
     this.$element = null
 
@@ -434,6 +435,10 @@ function drawPolygon(child, $page, colors) {
     var $element = createElement(`<div class="node"></div>`)
     $element.style.left = child.polygon.points.topLeft.x + 'px'
     $element.style.top = child.polygon.points.topLeft.y + 'px'
+
+    if (child.polygon.zIndex) {
+        $element.style.zIndex = child.polygon.zIndex
+    }
 
     $element.style.width = (child.polygon.points.topRight.x - child.polygon.points.topLeft.x) + 'px'
     $element.style.height = (child.polygon.points.bottomLeft.y - child.polygon.points.topLeft.y) + 'px'
@@ -916,10 +921,30 @@ function Mover(graph) {
     this.$node = null
     this.offsetPoint = null
     this.polygon = null
-    this.zIndex = 10
+    this.zIndex = null
     this.lines = []
     this.$hoverNode = null
     this.state = null
+
+    this.setupZindex = function () {
+        var obj = this
+        function branch(parent) {
+            var shouldSet = (parent.polygon.zIndex &&
+                (obj.zIndex === null || parent.polygon.zIndex > obj.zIndex)
+            )
+
+            if (shouldSet) {
+                obj.zIndex = parent.polygon.zIndex - 0
+            }
+
+            if (parent.children) {
+                parent.children.forEach(branch)
+            }
+        }
+
+        branch(this.graph)
+        this.zIndex++
+    }
 
     this.findRelatives = function ($node) {
         var poly = findPolygon(this.graph, $node)
@@ -998,7 +1023,6 @@ function Mover(graph) {
         hostClient.query('selected', findPolygon(this.graph, $node).text)
     }
 
-
     this.start = function ($node) {
         $node.classList.add('dragging')
         this.$node = $node
@@ -1015,6 +1039,7 @@ function Mover(graph) {
             this.lines = []
             this.zIndex++
             this.storeState()
+            hostClient.query('store_state', this.state)
         }
     }
 
@@ -1112,14 +1137,17 @@ function Mover(graph) {
 
     this.storeState = function() {
         function branch(parent, nodesWithTopLeft={}) {
-            if (parent.polygon && parent.polygon.text) {
-                nodesWithTopLeft[parent.polygon.text] = [
-                    parent.polygon.points.topLeft.x,
-                    parent.polygon.points.topLeft.y
+            var poly = parent.polygon
+            if (poly && poly.text) {
+                nodesWithTopLeft[poly.text] = [
+                    poly.points.topLeft.x,
+                    poly.points.topLeft.y
                 ]
 
-                if (parent.polygon.$element && parent.polygon.$element.style.zIndex) {
-                    nodesWithTopLeft[parent.polygon.text].push(parent.polygon.$element.style.zIndex)
+                if (poly.$element && poly.$element.style.zIndex) {
+                    nodesWithTopLeft[poly.text].push(
+                        poly.$element.style.zIndex - 0
+                    )
                 }
             }
 
@@ -1143,7 +1171,8 @@ function moveToOverridePositions(graph, positions) {
     function move(parent) {
         var pos = positions[parent.polygon.text]
         if (pos) {
-            parent.polygon.moveTopLeftTo(new Point(pos.x, pos.y))
+            parent.polygon.moveTopLeftTo(new Point(pos[0], pos[1]))
+            parent.polygon.zIndex = pos[2] !== undefined ? pos[2] : null
         }
 
         if (parent.children) {
@@ -1182,6 +1211,7 @@ function drawGraphFromSchema(schema, overridePositions={}, colors={}) {
 
     drawGraphLines(graph, 20, ['#EEEEFF', '#DDDDEE'])
     mover = new Mover(graph)
+    mover.setupZindex()
 }
 
 function go() {

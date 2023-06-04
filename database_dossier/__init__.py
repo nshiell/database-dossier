@@ -139,6 +139,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.diagram.bind('context_menu_table', lambda pos, table_name:
             print(table_name)
         )
+
+        self.diagram.bind('state_change', self.store_diagram_state)
         self.diagram.setup()
 
         colors = self.palette().color
@@ -147,6 +149,10 @@ class MainWindow(QMainWindow, WindowMixin):
             'thumbBackgroundColorHover' : colors(QPalette.Link).name(),
             'thumbBorderColorHover'     : colors(QPalette.Link).name(),
         }
+
+
+    def store_diagram_state(self, positions):
+        self.connections[self.connections.active_connection_index]['diagram'] = positions
 
 
     def show_diagram(self, new_index):
@@ -161,6 +167,16 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def show_schema_in_diagram(self):
         cons = self.connections
+        should_override = (
+            'diagram' in cons[cons.active_connection_index] and
+            cons[cons.active_connection_index]['diagram'] is not None
+        )
+
+        if should_override:
+            self.diagram.position_overrides = cons[
+                self.connections.active_connection_index
+            ]['diagram']
+
         self.diagram.colors = {
             k : cons.find_color_for_table(k) for k in cons.active_schema.keys()
         }

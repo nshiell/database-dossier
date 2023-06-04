@@ -55,6 +55,9 @@ def valid(container, key, data_type, min_size=None, max_size=None):
     if not isinstance(container[key], data_type):
         return False
 
+    if type(container[key]) != data_type:
+        return False
+
     if data_type == str:
         len_string = len(container[key])
 
@@ -75,6 +78,7 @@ def valid(container, key, data_type, min_size=None, max_size=None):
 
     return True
 
+
 class State:
     def parse_connection(self, connection):
         self.connections.append({
@@ -94,7 +98,10 @@ class State:
                 if valid(connection, 'database', str, 0, 200) else None,
 
             'table': connection['table']
-                if valid(connection, 'table', str, 0, 200) else None
+                if valid(connection, 'table', str, 0, 200) else None,
+
+            'diagram': connection['diagram']
+                if valid(connection, 'diagram', dict) else None,
         })
 
 
@@ -132,14 +139,22 @@ class State:
 
 
     def connections_for_persist(self):
-        connection_options_allowed = ['host', 'password', 'user', 'port', 'database', 'table']
-        connections = []
-        for connection in self.connections:
-            connections.append(
-                {k: v for k, v in connection.items() if k in connection_options_allowed}
-            )
+        options_allowed = [
+            'host',
+            'password',
+            'user',
+            'port',
+            'database',
+            'table',
+            'diagram'
+        ]
 
-        return connections
+        cons = []
+        for con in self.connections:
+            cons.append({k: v for k, v in con.items() if k in options_allowed})
+
+        return cons
+
 
     def to_dict(self):
         return {

@@ -41,6 +41,7 @@ class Diagram(QObject):
         self.page_colors = {}
         self.colors = {}
         self.event_bindings = {}
+        self.position_overrides = {}
         self.q_webview = q_webview
         self.q_webview.setContextMenuPolicy(Qt.CustomContextMenu)
         self.q_webview.customContextMenuRequested.connect(self.context_menu_table)
@@ -114,7 +115,7 @@ class Diagram(QObject):
             'schema-new',
             json.dumps({
                 'schema': self.schema,
-                'pos': {'user': {'x': 100, 'y': 300}},
+                'pos': self.position_overrides,
                 'colors': self.colors
             })
         )
@@ -133,7 +134,7 @@ class Diagram(QObject):
                 int(parts[0]),
                 json.dumps({
                     'schema': self.schema,
-                    'pos': {'user': {'x': 100, 'y': 300}},
+                    'pos': self.position_overrides,
                     'colors': self.colors
                 })
             )
@@ -156,6 +157,10 @@ class Diagram(QObject):
 
         elif parts[1] == 'hover_table_clear':
             self.hover_table = None
+
+        elif parts[1] == 'store_state':
+            self.trigger('state_change', [json.loads(indexUriData[offset:])])
+
 
 #border_color = self.palette().color(QPalette.Link).name()
 
