@@ -17,10 +17,12 @@
 import sys, signal
 from PyQt5.QtWidgets import QApplication
 from database_dossier import MainWindow
+from database_dossier.ui.types.window_mixin import load_web_engine_if_needed
 
 if __name__ == '__main__':
     # Kill the app on ctrl-c
     signal.signal(signal.SIGINT, signal.SIG_DFL)
+    load_web_engine_if_needed()
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

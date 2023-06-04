@@ -22,6 +22,16 @@ from PyQt5.QtCore import *
 import os
 import json
 
+
+def load_web_engine_if_needed():
+    try:
+        from PyQt5.QtWebKitWidgets import QWebView
+        return False
+    except:
+        from PyQt5 import QtWebEngineWidgets
+        return True
+
+
 class Diagram(QObject):
     def __init__(self, q_webview):
         super().__init__()
@@ -77,14 +87,18 @@ class Diagram(QObject):
 
 
     def load_finished(self):
-        #self.execute_javascript('hostClient.implementTitlebarCom()')
-        self.q_webview.page().mainFrame().addToJavaScriptWindowObject('host', self)
-        self.execute_javascript('hostClient.implementHostCom()')
+        if load_web_engine_if_needed():
+            self.execute_javascript('hostClient.implementTitlebarCom()')
+        else:
+            self.q_webview.page().mainFrame().addToJavaScriptWindowObject('host', self)
+            self.execute_javascript('hostClient.implementHostCom()')
 
 
     def execute_javascript(self, javascript):
-        #self.web_view.page().runJavaScript(javascript)
-        self.q_webview.page().mainFrame().evaluateJavaScript(javascript)
+        if load_web_engine_if_needed():
+            self.q_webview.page().runJavaScript(javascript)
+        else:
+            self.q_webview.page().mainFrame().evaluateJavaScript(javascript)
 
 
     @property
@@ -117,6 +131,8 @@ class Diagram(QObject):
             self.execute_javascript(javascript)
 
         if parts[1] == 'colors':
+            colors = self.colors
+            colors['web_engine'] = load_web_engine_if_needed()
             javascript = "hostClient.response(%d, %s)" % (
                 int(parts[0]),
                 json.dumps(self.colors)

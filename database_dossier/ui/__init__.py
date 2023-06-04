@@ -25,6 +25,15 @@ from PyQt5.QtCore import *
 from .types import *
 
 
+def load_web_engine_if_needed():
+    try:
+        from PyQt5.QtWebKitWidgets import QWebView
+        return False
+    except:
+        from PyQt5 import QtWebEngineWidgets
+        return True
+
+
 def show_connection_error(text):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Critical)
@@ -105,14 +114,18 @@ class InfoDialog(QDialog, WindowMixin):
 
 
     def load_finished(self):
-        #self.execute_javascript('hostClient.implementTitlebarCom()')
-        self.web_view.page().mainFrame().addToJavaScriptWindowObject('host', self)
-        self.execute_javascript('hostClient.implementHostCom()')
+        if load_web_engine_if_needed():
+            self.execute_javascript('hostClient.implementTitlebarCom()')
+        else:
+            self.web_view.page().mainFrame().addToJavaScriptWindowObject('host', self)
+            self.execute_javascript('hostClient.implementHostCom()')
 
 
     def execute_javascript(self, javascript):
-        #self.web_view.page().runJavaScript(javascript)
-        self.web_view.page().mainFrame().evaluateJavaScript(javascript)
+        if load_web_engine_if_needed():
+            self.web_view.page().runJavaScript(javascript)
+        else:
+            self.web_view.page().mainFrame().evaluateJavaScript(javascript)
 
 
     @pyqtSlot(str)

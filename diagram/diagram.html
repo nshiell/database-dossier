@@ -1165,6 +1165,10 @@ window.addEventListener('click', function (event) {
 
 
 function styleScrollbars(colors) {
+    if (!colors.web_engine) {
+        return null
+    }
+
     function Color(hex) {
         this.hex = hex
 

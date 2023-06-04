@@ -17,11 +17,21 @@
 """
 
 # for mixin stuff
-import os
+import os, tempfile
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+
+
+def load_web_engine_if_needed():
+    try:
+        from PyQt5.QtWebKitWidgets import QWebView
+        return False
+    except:
+        from PyQt5 import QtWebEngineWidgets
+        return True
+
 
 class WindowMixin:
     def __init__(self):
@@ -78,12 +88,26 @@ class WindowMixin:
             return action.triggered.connect(callback)
 
 
-    def load_xml(self, xml_file):
+    def load_xml(self, xml_file, web_engine_widget=False):
         # If this file is moved this line will need to change
         ui_dir = str(Path(__file__).resolve().parent.parent)
         self.xml_file = os.path.join(ui_dir, xml_file)
 
-        uic.loadUi(self.xml_file, self)
+        if load_web_engine_if_needed():
+            fd, tmp_path = tempfile.mkstemp()
+            try:
+                with os.fdopen(fd, 'w') as tmp:
+                    xml = open(self.xml_file).read()
+                    xml = xml.replace('class="QWebView"', 'class="QWebEngineView"')
+                    xml = xml.replace('<class>QWebView</class>', '<class>QWebEngineView</class>')
+                    xml = xml.replace('QtWebKitWidgets/QWebView', 'QtWebEngineWidgets/QWebEngineView')
+                    tmp.write(xml)
+                    tmp.close()
+                    uic.loadUi(tmp_path, self)
+            finally:
+                os.remove(tmp_path)
+        else:
+            uic.loadUi(self.xml_file, self)
 
 
     @property
