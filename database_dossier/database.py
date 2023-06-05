@@ -252,30 +252,60 @@ class ConnectionList(list):
         return tables
 
 
-    def find_color_for_table(self, table, as_hex=True):
-        def fix_color_to_hex(color):
-            if color < 50:
-                color = 0
-            elif color > 150:
-                color = 150
+    @property
+    def active_table_colors(self):
+        return {k : hex_color_string(k) for k in self.active_schema}
 
-            return hex(int(color))[2:].rjust(2, '0').upper()
 
-        l = len(table)
-        h = int(hashlib.md5(table.encode()).hexdigest(), 16)
-        h = float(str(float(str(h)))[0:5])
-        rgb = colorsys.hls_to_rgb(h, l, 20 + (l / 10))
+    def store_active_diagram(self, positions):
+        con = self.active_connection
+        if not con:
+            return None
 
-        if as_hex:
-            hexadecimal = '#' + ''.join([fix_color_to_hex(c) for c in rgb])
-            return hexadecimal
-            # hex(int(rgb[0]))[2:] + hex(rgb[1])[2:] + hex(rgb[2])[2:]
+        if not con['database']:
+            return None
 
-        return {
-            'red'   : rgb[0],
-            'green' : rgb[1],
-            'blue'  : rgb[2]
-        }
+        if 'diagrams' not in con:
+            con['diagrams'] = {}
+
+        if con['database'] not in con['diagrams']:
+            con['diagrams'][con['database']] = {}
+
+        con['diagrams'][con['database']] = positions
+
+    @property
+    def active_database_positions(self):
+        con = self.active_connection
+        if not con:
+            return {}
+
+        if 'diagrams' not in con:
+            return {}
+
+        if con['diagrams'] == None:
+            return {}
+
+        if con['database'] not in con['diagrams']:
+            return {}
+
+        return con['diagrams'][con['database']]
+
+
+def hex_color_string(string):
+    def fix_color_to_hex(color):
+        if color < 50:
+            color = 0
+        elif color > 150:
+            color = 150
+
+        return hex(int(color))[2:].rjust(2, '0').upper()
+
+    l = len(string)
+    h = int(hashlib.md5(string.encode()).hexdigest(), 16)
+    h = float(str(float(str(h)))[0:5])
+    rgb = colorsys.hls_to_rgb(h, l, 20 + (l / 10))
+
+    return '#' + ''.join([fix_color_to_hex(c) for c in rgb])
 
 
 def list_databases(lst, connection_item):

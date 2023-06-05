@@ -28,7 +28,6 @@ from .store import *
 from .updater import show_please_update
 from .database import ConnectionList, DatabaseException, test_connection
 
-
 class MainWindow(QMainWindow, WindowMixin):
     table_views = [
         'table_view_data',
@@ -140,7 +139,7 @@ class MainWindow(QMainWindow, WindowMixin):
             print(table_name)
         )
 
-        self.diagram.bind('state_change', self.store_diagram_state)
+        self.diagram.bind('state_change', self.connections.store_active_diagram)
         self.diagram.setup()
 
         colors = self.palette().color
@@ -149,10 +148,6 @@ class MainWindow(QMainWindow, WindowMixin):
             'thumbBackgroundColorHover' : colors(QPalette.Link).name(),
             'thumbBorderColorHover'     : colors(QPalette.Link).name(),
         }
-
-
-    def store_diagram_state(self, positions):
-        self.connections[self.connections.active_connection_index]['diagram'] = positions
 
 
     def show_diagram(self, new_index):
@@ -169,25 +164,14 @@ class MainWindow(QMainWindow, WindowMixin):
         cons = self.connections
 
         try:
-            active_schema = cons.active_schema
-        except:
+            self.diagram.populate(
+                schema             = cons.active_schema,
+                position_overrides = cons.active_database_positions,
+                colors             = cons.active_table_colors
+            )
+        except DatabaseException:
             return None
 
-        should_override = (
-            'diagram' in cons[cons.active_connection_index] and
-            cons[cons.active_connection_index]['diagram'] is not None
-        )
-
-        if should_override:
-            self.diagram.position_overrides = cons[
-                self.connections.active_connection_index
-            ]['diagram']
-
-        self.diagram.colors = {
-            k : cons.find_color_for_table(k) for k in cons.active_schema
-        }
-
-        self.diagram.schema = active_schema
 
     def select_sql_fragment(self, start_point, end_point):
         text_cursor = self.text_edit_sql.textCursor()

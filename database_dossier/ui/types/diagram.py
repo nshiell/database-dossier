@@ -103,6 +103,13 @@ class Diagram(QObject):
             self.q_webview.page().mainFrame().evaluateJavaScript(javascript)
 
 
+    def populate(self, schema, position_overrides, colors):
+        self.position_overrides = position_overrides
+        self.colors             = colors
+        # must be last
+        self.schema             = schema
+
+
     @property
     def schema(self):
         return self._schema
@@ -161,8 +168,6 @@ class Diagram(QObject):
         elif parts[1] == 'store_state':
             self.trigger('state_change', [json.loads(indexUriData[offset:])])
 
-
-#border_color = self.palette().color(QPalette.Link).name()
 
     @property
     def doc_dir(self):

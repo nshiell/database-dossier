@@ -100,8 +100,8 @@ class State:
             'table': connection['table']
                 if valid(connection, 'table', str, 0, 200) else None,
 
-            'diagram': connection['diagram']
-                if valid(connection, 'diagram', dict) else None,
+            'diagrams': connection['diagrams']
+                if valid(connection, 'diagrams', dict) else {},
         })
 
 
@@ -146,7 +146,7 @@ class State:
             'port',
             'database',
             'table',
-            'diagram'
+            'diagrams'
         ]
 
         cons = []
