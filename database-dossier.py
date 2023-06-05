@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/env python3
 """
     Database Dossier - A User Interface for your databases
     Copyright (C) 2022  Nicholas Shiell

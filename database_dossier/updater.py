@@ -1,6 +1,6 @@
 """
     Database Dossier - A User Interface for your databases
-    Copyright (C) 2022  Nicholas Shiell
+    Copyright (C) 2023  Nicholas Shiell
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ from datetime import datetime
 from PyQt5.QtWidgets import *
 
 
-past_date = datetime(2022, 10, 1)
+past_date = datetime(2023, 6, 1)
 months_to_live = 6
 age_months = ((datetime.now() - past_date).days) / 30
 
