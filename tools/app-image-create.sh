@@ -29,11 +29,13 @@ APP_RUN='#! /bin/bash
 APPDIR=`dirname $0`
 export PATH="$PATH":"${APPDIR}"/usr/bin
 
-if [ "$(tools/can-run-host.py)" == "ALL_OK" ]; then
+if [ "$($APPDIR/can-run-host.py)" == "ALL_OK" ]; then
     ${APPDIR}/opt/database-dossier/database-dossier.py $@
 else
     ${APPDIR}/usr/bin/python3 ${APPDIR}/opt/database-dossier/database-dossier.py $@
 fi'
+
+export CONDA_PYTHON_VERSION="3.9"
 
 export CONDA_CHANNELS='conda-forge'
 
@@ -42,7 +44,7 @@ export CONDA_CHANNELS='conda-forge'
 export CONDA_PACKAGES='PyQtWebKit';# pyqt5 5.15.7'
 
 # Install PyQt5 at this point - will install the correct version
-export PIP_REQUIREMENTS='appdirs mysql_connector_python Pygments'
+export PIP_REQUIREMENTS='appdirs mysql_connector_python Pygments pyqt5'
 
 # [Pour everything into a large bowl]
 mkdir -p ./AppDir/opt/database-dossier/artwork
@@ -67,7 +69,8 @@ echo "$APP_RUN" > ./AppDir/AppRun.sh
 
 # The version of PyQt that is compatibile with PyQtWebKit has a nasty bug
 # this change makes things work
-sed -i 's/QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/#QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/g' AppDir/usr/conda/lib/*/site-packages/PyQt5/uic/uiparser.py
+#sed -i 's/QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/#QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/g' AppDir/usr/conda/lib/*/site-packages/PyQt5/uic/uiparser.py
+sed -i 's/QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/#QtCore.QMetaObject.connectSlotsByName(self.toplevelWidget)/g' AppDir/usr/conda/lib/python3.9/site-packages/PyQt5/uic/uiparser.py
 
 mkdir -p AppDir/usr/share/metainfo/
 echo '<?xml version="1.0" encoding="UTF-8"?>
