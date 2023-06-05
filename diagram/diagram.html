@@ -46,7 +46,7 @@ svg.lines {
     z-index: 2;
     cursor: pointer;
     box-shadow: 4px 2px 10px -1px rgba(0,0,0,0.58);
-    transition: opacity .5s;
+    transition: opacity 1s;
 }
 
 .node.dragging {
@@ -54,12 +54,12 @@ svg.lines {
 }
 
 .over-node .node {
-    opacity: .2;
+    opacity: .3;
 }
 
 .over-node svg.lines .line {
-    opacity: .2;
-    transition: opacity .5s;
+    opacity: .05;
+    transition: opacity 1s;
 }
 
 svg.lines .line.active, .node.active {
