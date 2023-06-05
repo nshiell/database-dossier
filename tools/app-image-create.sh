@@ -28,7 +28,12 @@ rm -rf AppDir
 APP_RUN='#! /bin/bash
 APPDIR=`dirname $0`
 export PATH="$PATH":"${APPDIR}"/usr/bin
-${APPDIR}/usr/bin/python3 ${APPDIR}/opt/database-dossier/database-dossier.py $@'
+
+if [ "$(tools/can-run-host.py)" == "ALL_OK" ]; then
+    ${APPDIR}/opt/database-dossier/database-dossier.py $@
+else
+    ${APPDIR}/usr/bin/python3 ${APPDIR}/opt/database-dossier/database-dossier.py $@
+fi'
 
 export CONDA_CHANNELS='conda-forge'
 
@@ -46,6 +51,7 @@ cp ../database-dossier.py ./AppDir/opt/database-dossier
 cp -R ../database_dossier ./AppDir/opt/database-dossier
 cp -R ../doc ./AppDir/opt/database-dossier
 cp -R ../diagram ./AppDir/opt/database-dossier
+cp -p can-run-host.py ./AppDir/
 
 echo "$APP_RUN" > ./AppDir/AppRun.sh
 
